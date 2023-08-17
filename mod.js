@@ -1438,8 +1438,8 @@ class Game {
     }
 
     doMouse() {
-        this.gameX = Math.round(clamp(0, Math.round(this.cX + this.mouseX - window.innerWidth / 2), this.gamesize)/this.zoomLevel);
-        this.gameY = Math.round(clamp(0, Math.round(this.cY + this.mouseY - window.innerHeight / 2), this.gamesize)/this.zoomLevel);
+        this.gameX = Math.round(clamp(0, Math.round((this.cX + this.mouseX - window.innerWidth / 2)/this.zoomLevel), this.gamesize));
+        this.gameY = Math.round(clamp(0, Math.round((this.cY + this.mouseY - window.innerHeight / 2)/this.zoomLevel), this.gamesize));
         this.status.mouseWithinNarrowField = this.mouseFieldCheck(400);
         this.status.mouseWithinWideField = this.mouseFieldCheck(600);
         if (this.castle) {
