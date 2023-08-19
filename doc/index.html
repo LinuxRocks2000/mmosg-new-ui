@@ -43,11 +43,14 @@
                     further client development, including a currently in-progress Wii fork.
                 </p>
                 <p>
+                    <b>NOTE August 19, 2023:</b> There are no longer built-in clients in official servers! Instead, the client must be hosted separately. This leaves the old ui effectively unusable, but it remains archived.
+                </p>
+                <p>
                     This documentation is primarily focused on client design - while it is technically possible to create a server based on the information included here,
                     it's not supported. The server is much more complicated, and I will probably have to write a separate doc sheet for it.
                 </p>
                 <p>
-                    The source code is hosted alongside the old single player Strategy Game on <a href="https://github.com/LinuxRocks2000/strategy-game">Github</a>.
+                    The MMOSG server source code is hosted on <a href="https://github.com/LinuxRocks2000/mmosg">Github</a>. The newest official client for MMOSG is also hosted on <a href="https://github.com/LinuxRocks2000/mmosg-new-ui">Github</a>.
                 </p>
                 <h1 id="protocol">MMOSG Protocol</h1>
                 <p>
@@ -415,6 +418,9 @@
                                 <td>b</td><td>Bullet</td><td>A bullet, duh. Shooting types spawn these.</td><td>N/A</td><td>No</td><td>No</td><td>No</td>
                             </tr>
                             <tr>
+                                <td>a</td><td>Anti-RTF Bullet</td><td>High-damage, "smart" missile that seeks and destroys RTFs with fancy kinematics.</td><td>7</td><td>No</td><td>No</td><td>Yes</td>
+                            </tr>
+                            <tr>
                                 <td>c</td><td>Castle</td><td>Strategic castle.</td><td>N/A</td><td>No</td><td>No</td><td>No</td>
                             </tr>
                             <tr>
@@ -422,6 +428,9 @@
                             </tr>
                             <tr>
                                 <td>h</td><td>Hypersonic</td><td>Usually known as a Missile. Moves very, very fast, but swoops uncontrollably.</td><td>5</td><td>No</td><td>Yes</td><td>Yes</td>
+                            </tr>
+                            <tr>
+                                <td>m</td><td>Missile Launching System</td><td>Turret that fires Anti-RTF Bullets</td><td>100</td><td>Yes; Anti-RTF Bullets instead of regular bullets.</td><td>No</td><td>Yes</td>
                             </tr>
                             <tr>
                                 <td>n</td><td>Nuke</td><td>Fast-moving bomb that explodes into several radiation fields on death. Can die from impacts or after a fixed TTL.</td><td>300</td><td>Yes</td><td>Yes</td><td>Yes</td>

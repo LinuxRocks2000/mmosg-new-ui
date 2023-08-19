@@ -701,6 +701,13 @@ class GameObject {
         else if (this.type == "w") {
             ctx.drawImage(document.querySelector("img#wall"), -10, -10);
         }
+        else if (this.type == "K") {
+            ctx.fillStyle = "#555";
+            for (var i = 0; i < 6; i++) {
+                ctx.fillRect(-w / 2 + i * 80 * zoomLevel, -h / 2, 10 * zoomLevel, h);
+            }
+            ctx.fillRect(-w/2, -5 * zoomLevel, w, 10 * zoomLevel);
+        }
         else {
             ctx.strokeRect(-w / 2, -h / 2, w, h);
         }
@@ -1050,6 +1057,15 @@ class Game {
                     cbk: () => {
                         this.status.wallsTurn += 2;
                     }
+                }
+            },
+            {
+                name: "CARRIER",
+                cost: 60,
+                descriptionL1: "",
+                descriptionL2: "",
+                place: {
+                    word: "K"
                 }
             },
             {
