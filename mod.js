@@ -1061,7 +1061,7 @@ class Game {
             },
             {
                 name: "CARRIER",
-                cost: 60,
+                cost: 80,
                 descriptionL1: "",
                 descriptionL2: "",
                 place: {
