@@ -1488,16 +1488,16 @@ class Game {
         this.controls.right = this.keysDown["ArrowRight"] || this.keysDown["d"];
         if (!this.status.isRTF || this.status.moveShips) {
             if (this.controls.up) {
-                this.cY -= 20;
+                this.cY -= 40;
             }
             else if (this.controls.down) {
-                this.cY += 20;
+                this.cY += 40;
             }
             if (this.controls.left) {
-                this.cX -= 20;
+                this.cX -= 40;
             }
             else if (this.controls.right) {
-                this.cX += 20;
+                this.cX += 40;
             }
         }
         this.cX = clamp(0, this.cX, this.gamesize * this.zoomLevel);
