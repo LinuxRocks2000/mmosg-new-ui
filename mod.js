@@ -132,7 +132,7 @@ class Protocol extends EventTarget {
         this.send('c', [
             isSpectating ? "" : password,
             banner,
-            isSpectating ? "" : playMode
+            isSpectating ? "spectator" : playMode
         ]);
     }
 
@@ -160,8 +160,8 @@ class Protocol extends EventTarget {
         }
     }
 
-    talk(message) { // This function will see significant changes as I actually implement chatroom!
-        this.send("T", [message]);
+    talk(message, scope) {
+        this.send("T", [message, scope]);
     }
 
     upgrade(id, upgrade) {
@@ -332,11 +332,11 @@ class Sidebar {
                 var dx = object.getX(interpolator) - parent.castle.getX(interpolator);
                 var dy = object.getY(interpolator) - parent.castle.getY(interpolator);
                 var dist = dx * dx + dy * dy;
-                if (!object.isOurs && dist < nearestValue && object.type != 'b' && object.isCompassVisible()) {
+                if (!object.isOurs && dist < nearestValue && object.type != 'b' && object.isCompassVisible()) { // keep this as isOurs because this reports for everything that isn't distinctly controlled by us
                     nearestValue = dist;
                 }
                 if (dist < 400 * 400 && object.isCompassVisible() && object != parent.castle) {
-                    if (object.isOurs) {
+                    if (object.isFriendly()) { // isFriendly also factors in teams
                         ctx.fillStyle = "rgb(47, 237, 51)";
                     }
                     else {
@@ -462,7 +462,7 @@ class Sidebar {
             if (!obj.isCompassVisible()) {
                 return;
             }
-            if (obj.isOurs) {
+            if (obj.isFriendly()) {
                 ctx.fillStyle = "rgb(47, 237, 51)";
             }
             else {
@@ -579,7 +579,7 @@ class Sidebar {
 
 
 class GameObject {
-    constructor(x, y, w, h, a, type, editable, id, banner) {
+    constructor(parent, x, y, w, h, a, type, editable, id, banner) {
         this.x = x;
         this.xOld = x;
         this.y = y;
@@ -610,6 +610,7 @@ class GameObject {
         this.bodyHovered = false;
         this.editState = 0; // 0 = none; 1 = picked up, moving; 2 = picked up, setting angle
         this.didMove = true; // whether or not it's moved since last tick
+        this.parent = parent;
     }
 
     getTypeString() {
@@ -631,9 +632,20 @@ class GameObject {
         return "SHIP";
     }
 
+    isTeammate() {
+        return this.parent.castle && this.parent.teams[this.banner] == this.parent.teams[this.parent.castle.banner];
+    }
+
+    isFriendly() {
+        return this.isOurs || this.isTeammate();
+    }
+
     getFriendlinessString() {
         if (this.isOurs) {
-            return "FRIENDLY";
+            return "OURS";
+        }
+        else if (this.isTeammate()) {
+            return "TEAMMATE"
         }
         else if (this.banner == 0) {
             return "NEUTRAL";
@@ -777,7 +789,7 @@ class GameObject {
         if (this.bodyHovered) {
             ctx.fillStyle = "#F3BB38";
             ctx.font = "8px 'Chakra Petch'";
-            var tooltipHeight = this.isOurs ? 40 : 30;
+            var tooltipHeight = this.isOurs ? 40 : 30; // use isOurs here because we can't see what our teammates are doing, the game is not _nice_ that way.
             var tooltipWidth = Math.max(41, ctx.measureText(master.banners[this.banner]).width + 4);
             ctx.fillRect(x - 40 - tooltipWidth, y - tooltipHeight/2, tooltipWidth, tooltipHeight);
             ctx.beginPath();
@@ -1175,7 +1187,7 @@ class Game {
             delete this.objects[args[0]];
         }
         else if (command == "n") {
-            this.objects[args[1]] = new GameObject(args[2] - 0, args[3] - 0, args[7] - 0, args[8] - 0, args[4] - 0, args[0], args[5] == "1", args[1], args[6] - 0);
+            this.objects[args[1]] = new GameObject(this, args[2] - 0, args[3] - 0, args[7] - 0, args[8] - 0, args[4] - 0, args[0], args[5] == "1", args[1], args[6] - 0);
             if ((args[0] == "c" || args[0] == "R") && this.mine.indexOf(args[1]) != -1) {
                 this.castle = this.objects[args[1]];
                 if (args[0] == "R") {
@@ -1269,7 +1281,7 @@ class Game {
         else if (command == "b") {
             this.banners[args[0]] = args[1];
             if (args.length > 2) {
-                this.teams[args[1]] = args[2];
+                this.teams[args[0]] = args[2];
             }
         }
         else if (command == "a") {
@@ -1575,9 +1587,11 @@ class Game {
                     });
                 }
             }
-            else if (!this.status.mouseWithinNarrowField){
-                this.place("c");
-                this.status.hasPlacedCastle = true;
+            else if (!this.status.mouseWithinNarrowField) {
+                if (!this.status.spectating) {
+                    this.place("c");
+                    this.status.hasPlacedCastle = true;
+                }
             }
         }
     }
@@ -1628,40 +1642,51 @@ function play() {
     socket.onopen = () => {
         started = true;
         game.start(form);
-        window.addEventListener("wheel", (evt) => {
+        document.getElementById("game").addEventListener("wheel", (evt) => {
             game.scroll(evt.deltaX, evt.deltaY);
             evt.preventDefault();
             return false;
         }, {passive:false});
 
-        window.addEventListener("scroll", (evt) => {
+        document.getElementById("game").addEventListener("scroll", (evt) => {
             evt.preventDefault();
             return false;
         });
 
-        window.addEventListener("mousemove", (evt) => {
+        document.getElementById("game").addEventListener("mousemove", (evt) => {
             game.mouse(evt.clientX, evt.clientY);
         });
 
-        window.addEventListener("mousedown", (evt) => {
+        document.getElementById("game").addEventListener("mousedown", (evt) => {
             game.mouseDown();
         });
 
-        window.addEventListener("mouseup", (evt) => {
+        document.getElementById("game").addEventListener("mouseup", (evt) => {
             game.mouseUp();
         });
 
         window.addEventListener("keydown", (evt) => {
-            game.keysDown[evt.key] = true;
-            if (evt.key == "q") {
-                game.attemptWall(game.mouseX, game.mouseY);
+            if (document.getElementById("chatroominput") != document.activeElement) {
+                game.keysDown[evt.key] = true;
+                if (evt.key == "q") {
+                    game.attemptWall(game.mouseX, game.mouseY);
+                }
             }
         });
-        
+
         window.addEventListener("keyup", (evt) => {
-            game.keysDown[evt.key] = false;
-            if (evt.key == "i") {
-                game.sidebar.isInventory = !game.sidebar.isInventory;
+            if (document.getElementById("chatroominput") == document.activeElement) {
+                if (evt.key == "Enter") {
+                    game.talk(document.getElementById("chatroominput").value, "team");
+                    document.getElementById("chatroominput").value = "";
+                    document.getElementById("game").focus();
+                }
+            }
+            else{
+                game.keysDown[evt.key] = false;
+                if (evt.key == "i") {
+                    game.sidebar.isInventory = !game.sidebar.isInventory;
+                }
             }
         });
     };
