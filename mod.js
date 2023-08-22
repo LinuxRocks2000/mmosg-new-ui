@@ -1161,7 +1161,16 @@ class Game {
         else if (command == "B") {
             //console.log("banner " + args[1] + " sent a message with priority " + args[2] + ": " + args[0]);
             var chatEl = document.getElementById("chat-messages")
-            chatEl.innerHTML += `<p style="font-size: ${1 + args[2] * 0.2}em;"><span style="color: ${args[1] == 0 ? 'magenta' : 'red'};">${args[1] == 0 ? "GOD" : this.banners[args[1]]}</span>: ${args[0]}</p>`;
+            var messageEl = document.createElement("p");
+            messageEl.style.fontSize = 1 + args[2] * 0.2 + "em";
+            var bannerSpan = document.createElement("span");
+            bannerSpan.style.color = args[1] == 0 ? "magenta" : "red";
+            bannerSpan.innerText = args[2] == 1 ? "👑 " : "";
+            bannerSpan.innerText += args[1] == 0 ? "GOD" : this.banners[args[1]];
+            messageEl.appendChild(bannerSpan);
+            messageEl.appendChild(document.createTextNode(": " + args[0]));
+            chatEl.appendChild(messageEl);
+            //chatEl.innerHTML += `<p style="font-size: ${1 + args[2] * 0.2}em;"><span style="color: ${args[1] == 0 ? 'magenta' : 'red'};">${args[2] == 1 ? "👑 " : ""}${args[1] == 0 ? "GOD" : this.banners[args[1]]}</span>: ${args[0]}</p>`;
             chatEl.scrollTo({
                 top: chatEl.scrollHeight
             });
@@ -1682,7 +1691,11 @@ function play() {
                     game.attemptWall(game.mouseX, game.mouseY);
                 }
                 else if (evt.key == "T") {
-                    document.getElementById("chat").classList.toggle("hidden");
+                    if (game.castle) { // you can't use the chat if you don't have a castle. this is also weak spectator discouragement, although it allows
+                        // some harmless trolling.
+                        document.getElementById("chat").classList.toggle("hidden");
+                        document.getElementById("chat-banner").innerText = game.banners[game.castle.banner];
+                    }
                 }
             }
         });
