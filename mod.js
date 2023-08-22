@@ -1159,7 +1159,12 @@ class Game {
             this.status.isTeamLeader = true;
         }
         else if (command == "B") {
-            console.log("banner " + args[1] + " sent a message with priority " + args[2] + ": " + args[0]);
+            //console.log("banner " + args[1] + " sent a message with priority " + args[2] + ": " + args[0]);
+            var chatEl = document.getElementById("chat-messages")
+            chatEl.innerHTML += `<p style="font-size: ${1 + args[2] * 0.2}em;"><span style="color: ${args[1] == 0 ? 'magenta' : 'red'};">${args[1] == 0 ? "GOD" : this.banners[args[1]]}</span>: ${args[0]}</p>`;
+            chatEl.scrollTo({
+                top: chatEl.scrollHeight
+            });
         }
         else if (command == "s") {
 
@@ -1653,7 +1658,7 @@ function play() {
             return false;
         });
 
-        document.getElementById("game").addEventListener("mousemove", (evt) => {
+        window.addEventListener("mousemove", (evt) => {
             game.mouse(evt.clientX, evt.clientY);
         });
 
@@ -1666,20 +1671,27 @@ function play() {
         });
 
         window.addEventListener("keydown", (evt) => {
-            if (document.getElementById("chatroominput") != document.activeElement) {
+            if (game.mouseX > window.innerWidth - 400 && !document.getElementById("chat").classList.contains("hidden")) {
+                // TODO: use this for something or compress the statement into a single if.
+                // This trick of using an else instead of a not in anticipation of more code is
+                // something that has befuddled and annoyed people since my early robotics days.
+            }
+            else{
                 game.keysDown[evt.key] = true;
                 if (evt.key == "q") {
                     game.attemptWall(game.mouseX, game.mouseY);
+                }
+                else if (evt.key == "T") {
+                    document.getElementById("chat").classList.toggle("hidden");
                 }
             }
         });
 
         window.addEventListener("keyup", (evt) => {
-            if (document.getElementById("chatroominput") == document.activeElement) {
+            if (game.mouseX > window.innerWidth - 400 && !document.getElementById("chat").classList.contains("hidden")) {
                 if (evt.key == "Enter") {
-                    game.talk(document.getElementById("chatroominput").value, "team");
-                    document.getElementById("chatroominput").value = "";
-                    document.getElementById("game").focus();
+                    game.comms.talk(document.getElementById("chat-input").value, "team");
+                    document.getElementById("chat-input").value = "";
                 }
             }
             else{
