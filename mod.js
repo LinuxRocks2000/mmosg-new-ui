@@ -633,7 +633,7 @@ class GameObject {
     }
 
     isTeammate() {
-        return this.parent.castle && this.parent.teams[this.banner] == this.parent.teams[this.parent.castle.banner];
+        return this.parent.castle && this.parent.teams[this.banner] && this.parent.teams[this.banner] == this.parent.teams[this.parent.castle.banner];
     }
 
     isFriendly() {
@@ -906,7 +906,7 @@ class GameObject {
     }
 
     isCompassVisible() { // Can it be seen on a compass?
-        const hidden = ["s", "b", "C", "w"]; // List of types that can't be displayed on minimap/compass
+        const hidden = ["s", "b", "C", "w", "F"]; // List of types that can't be displayed on minimap/compass
         var isSniper = this.upgrades.indexOf("s")!= -1;
         return this.isOurs || (hidden.indexOf(this.type) == -1 && !isSniper);
     }
