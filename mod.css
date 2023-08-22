@@ -212,10 +212,15 @@ img {
     top: 56px;
     width: 400px;
     height: calc(100vh - 112px);
-    background-color: darkslategrey;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
     display: flex;
     flex-direction: column;
     align-items: start;
+}
+
+#chat > input {
+    color: white;
 }
 
 #chat-messages {
