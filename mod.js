@@ -1,4 +1,4 @@
-const DEBUG = false;
+const DEBUG = true;
 const INTERPOLATE = true;
 
 function clamp(min, val, max) {
@@ -690,20 +690,17 @@ class GameObject {
         ctx.translate(x, y);
         ctx.rotate(a);
         if (this.type == "R") {
-            ctx.fillStyle = "white";
-            ctx.fillRect(-w / 2, -h / 2, w, 5);
-            ctx.strokeRect(-w / 2, -h / 2, w, h);
+            ctx.drawImage(document.querySelector("img#rtf"), -28, -28);
         }
         else if (this.type == "c") {
             ctx.drawImage(document.querySelector("img#castle"), -35, -35);
         }
         else if (this.type == "C") {
-            ctx.beginPath();
             ctx.drawImage(document.querySelector("img#chest"), -11, -12);
         }
         else if (this.type == "f") {
             ctx.rotate(Math.PI / 2);
-            ctx.drawImage(document.querySelector("img#ship"), -15, -15);
+            ctx.drawImage(document.querySelector("img#ship"), -12, -15);
             ctx.rotate(-Math.PI / 2);
         }
         else if (this.type == "b") {
@@ -719,6 +716,16 @@ class GameObject {
                 ctx.fillRect(-w / 2 + i * 80 * zoomLevel, -h / 2, 10 * zoomLevel, h);
             }
             ctx.fillRect(-w/2, -5 * zoomLevel, w, 10 * zoomLevel);
+        }
+        else if (this.type == "t") {
+            ctx.rotate(Math.PI / 2);
+            ctx.drawImage(document.querySelector("img#tie"), -22, -16);
+            ctx.rotate(-Math.PI / 2);
+        }
+        else if (this.type == "h") {
+            ctx.rotate(Math.PI / 2);
+            ctx.drawImage(document.querySelector("img#missile"), -9, -16);
+            ctx.rotate(-Math.PI / 2);
         }
         else {
             ctx.strokeRect(-w / 2, -h / 2, w, h);
@@ -1337,8 +1344,8 @@ class Game {
                 this.status.lastTickTime = curTime - this.status.tickTime;
             }
             var gTickTime = curTime - this.status.lastTickTime;
-            const drag = 0.99;
-            this.status.tickTime = this.status.tickTime * drag + gTickTime * (1 - drag);
+            const drag = 0.999; // we officially no longer support autoadjusting times! it will always expect 1000/30. this should help the problem a bit.
+            //this.status.tickTime = this.status.tickTime * drag + gTickTime * (1 - drag);
             this.status.lastTickTime = curTime;
             if (args[2]) {
                 this.health = args[2] - 0;
