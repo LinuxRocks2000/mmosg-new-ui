@@ -761,9 +761,9 @@ class GameObject {
             ctx.strokeStyle = "green";
             ctx.fillStyle = "green";
             if (this.isHovered) {
-                ctx.fillRect(this.goalPos.x * zoomLevel - 5, this.goalPos.y * zoomLevel - 5, 10, 10);
+            //    ctx.fillRect(this.goalPos.x * zoomLevel - 5, this.goalPos.y * zoomLevel - 5, 10, 10);
             }
-            ctx.strokeRect(this.goalPos.x * zoomLevel - 5, this.goalPos.y * zoomLevel - 5, 10, 10);
+            //ctx.strokeRect(this.goalPos.x * zoomLevel - 5, this.goalPos.y * zoomLevel - 5, 10, 10);
             ctx.beginPath();
             ctx.moveTo(x, y);
             ctx.setLineDash([2, 4]);
@@ -1344,8 +1344,8 @@ class Game {
                 this.status.lastTickTime = curTime - this.status.tickTime;
             }
             var gTickTime = curTime - this.status.lastTickTime;
-            const drag = 0.999; // we officially no longer support autoadjusting times! it will always expect 1000/30. this should help the problem a bit.
-            //this.status.tickTime = this.status.tickTime * drag + gTickTime * (1 - drag);
+            const drag = 0.995; // we officially no longer support autoadjusting times! it will always expect 1000/30. this should help the problem a bit.
+            this.status.tickTime = this.status.tickTime * drag + gTickTime * (1 - drag);
             this.status.lastTickTime = curTime;
             if (args[2]) {
                 this.health = args[2] - 0;
@@ -1461,6 +1461,9 @@ class Game {
         var interpolator = (window.performance.now() - this.status.lastTickTime) / this.status.tickTime;
         if (!INTERPOLATE) {
             interpolator = 1; // not 0, because then it'd be a frame behind at all times
+        }
+        if (interpolator > 1) { // if it's "glitching"
+            //interpolator = 1;
         }
         if (this.status.isRTF && !this.status.moveShips && !this.status.wait) {
             this.cX = this.castle.getX(interpolator) * this.zoomLevel;
