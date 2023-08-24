@@ -268,11 +268,11 @@ class Sidebar {
         ctx.font = "bold 14px 'Chakra Petch'";
         ctx.textAlign = "left";
         ctx.fillStyle = "white";
-        ctx.fillText("X", 20, 632 + 7);
-        ctx.fillText("Y", 148, 632 + 7);
+        ctx.fillText("X", 20, 632 + 14);
+        ctx.fillText("Y", 148, 632 + 14);
         ctx.font = "24px 'Chakra Petch'";
-        ctx.fillText(parent.gameX, 20, 650 + 12);
-        ctx.fillText(parent.gameY, 148, 650 + 12);
+        ctx.fillText(parent.gameX, 20, 650 + 24);
+        ctx.fillText(parent.gameY, 148, 650 + 24);
         ctx.fillStyle = "#333";
         ctx.fillRect(18, 487, 218, 2);
         ctx.fillRect(18, 771, 218, 2);
@@ -494,6 +494,44 @@ class Sidebar {
             ctx.fillStyle = "white";
             ctx.fillRect(46 + parent.gameX * scaleX - 1, 66 + parent.gameY * scaleY - 1, 2, 2);
         });
+
+        ctx.font = "14px 'Chakra Petch'";
+        ctx.fillStyle = "#CCC";
+        ctx.fillText("UPGRADES", 18, 503 + 14);
+        this.drawUpgradeBar(ctx, "A", "Speed", 0.7, 0.5, 539);
+        this.drawUpgradeBar(ctx, "B", "Damage", 0.8, 0.1, 573);
+        this.drawUpgradeBar(ctx, "C", "Health", 0.3, 0.2, 607);
+    }
+
+    drawUpgradeBar(ctx, lItem, label, projected, current, rootY) {
+        ctx.font = "12px 'Chakra Petch'";
+        ctx.textAlign = "left";
+        var tWid = ctx.measureText(label).width;
+        ctx.fillStyle = "white";
+        ctx.fillRect(69 - tWid, rootY, tWid, 16);
+        ctx.fillStyle = "black";
+        ctx.fillText(label, 69 - tWid, rootY + 12);
+        ctx.font = "bold 8px 'Chakra Petch'";
+        ctx.fillStyle = "#888";
+        ctx.fillText(lItem, 69 - tWid - 10, rootY + 4);
+        ctx.fillStyle = "#222";
+        ctx.fillRect(69, rootY, 162, 8);
+        ctx.fillRect(69, rootY + 8 + 4, 162, 4);
+        ctx.fillStyle = "white";
+        ctx.fillRect(69, rootY + 8 + 4, 162 * current, 4);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(69, rootY, 162 * projected, 8);
+        ctx.clip();
+        ctx.beginPath();
+        for (var i = -2; i < 40; i ++) {
+            ctx.moveTo(69 + i * 4, rootY + 8);
+            ctx.lineTo(69 + i * 4 + 8, rootY);
+        }
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 0.3;
+        ctx.stroke();
+        ctx.restore();
     }
 
     availability(ctx, title, rootY, value) {
@@ -632,6 +670,14 @@ class GameObject {
         return "SHIP";
     }
 
+    getVx() {
+        return this.x - this.xOld;
+    }
+
+    getVy() {
+        return this.y - this.yOld;
+    }
+
     isTeammate() {
         return this.parent.castle && this.parent.teams[this.banner] && this.parent.teams[this.banner] == this.parent.teams[this.parent.castle.banner];
     }
@@ -677,30 +723,30 @@ class GameObject {
         return this.interpolate(interpolator, "h");
     }
 
-    draw(master, interpolator, zoomLevel = 1) {
+    draw(master, interpolator) {
         var ctx = master.ctx;
         ctx.lineWidth = 2;
         ctx.globalAlpha = 1;
         ctx.strokeStyle = "white";
-        var w = this.getW(interpolator) * zoomLevel;
-        var h = this.getH(interpolator) * zoomLevel;
+        var w = this.getW(interpolator);
+        var h = this.getH(interpolator);
         var a = this.getA(interpolator);
-        var x = this.getX(interpolator) * zoomLevel;
-        var y = this.getY(interpolator) * zoomLevel;
+        var x = this.getX(interpolator);
+        var y = this.getY(interpolator);
         ctx.translate(x, y);
         ctx.rotate(a);
         if (this.type == "R") {
-            ctx.drawImage(document.querySelector("img#rtf"), -28, -28);
+            ctx.drawImage(document.querySelector("img#rtf"), -40, -40);
         }
         else if (this.type == "c") {
-            ctx.drawImage(document.querySelector("img#castle"), -35, -35);
+            ctx.drawImage(document.querySelector("img#castle"), -50, -50);
         }
         else if (this.type == "C") {
-            ctx.drawImage(document.querySelector("img#chest"), -11, -12);
+            ctx.drawImage(document.querySelector("img#chest"), -15, -17);
         }
         else if (this.type == "f") {
             ctx.rotate(Math.PI / 2);
-            ctx.drawImage(document.querySelector("img#ship"), -12, -15);
+            ctx.drawImage(document.querySelector("img#ship"), -17, -21);
             ctx.rotate(-Math.PI / 2);
         }
         else if (this.type == "b") {
@@ -708,23 +754,23 @@ class GameObject {
             ctx.fillRect(-w / 2, -h / 2, w, h);
         }
         else if (this.type == "w") {
-            ctx.drawImage(document.querySelector("img#wall"), -10, -10);
+            ctx.drawImage(document.querySelector("img#wall"), -15, -15);
         }
         else if (this.type == "K") {
             ctx.fillStyle = "#555";
             for (var i = 0; i < 6; i++) {
-                ctx.fillRect(-w / 2 + i * 80 * zoomLevel, -h / 2, 10 * zoomLevel, h);
+                ctx.fillRect(-w / 2 + i * 80, -h / 2, 10, h);
             }
-            ctx.fillRect(-w/2, -5 * zoomLevel, w, 10 * zoomLevel);
+            ctx.fillRect(-w/2, -5 * zoomLevel, w, 10);
         }
         else if (this.type == "t") {
             ctx.rotate(Math.PI / 2);
-            ctx.drawImage(document.querySelector("img#tie"), -22, -16);
+            ctx.drawImage(document.querySelector("img#tie"), -31, -23);
             ctx.rotate(-Math.PI / 2);
         }
         else if (this.type == "h") {
             ctx.rotate(Math.PI / 2);
-            ctx.drawImage(document.querySelector("img#missile"), -9, -16);
+            ctx.drawImage(document.querySelector("img#missile"), -13, -22);
             ctx.rotate(-Math.PI / 2);
         }
         else {
@@ -748,14 +794,14 @@ class GameObject {
             ctx.strokeStyle = "green";
             ctx.beginPath();
             ctx.moveTo(x, y);
-            ctx.lineTo(this.x * zoomLevel, this.y * zoomLevel);
+            ctx.lineTo(this.x, this.y);
             ctx.stroke();
         }
         if (DEBUG) {
             ctx.globalAlpha = 1;
             ctx.strokeStyle = "blue";
             ctx.lineWidth = 1;
-            ctx.strokeRect(this.box[0] * zoomLevel, this.box[1] * zoomLevel, this.box[2] * zoomLevel - this.box[0] * zoomLevel, this.box[3] * zoomLevel - this.box[1] * zoomLevel);
+            ctx.strokeRect(this.box[0], this.box[1], this.box[2] - this.box[0], this.box[3] - this.box[1]);
         }
         if (this.isOurs && this.isEditable) {
             ctx.strokeStyle = "green";
@@ -770,11 +816,11 @@ class GameObject {
             ctx.strokeStyle = "white";
             ctx.fillStyle = "#F3BB38";
             ctx.lineWidth = 1;
-            ctx.lineTo(this.goalPos.x * zoomLevel, this.goalPos.y * zoomLevel);
+            ctx.lineTo(this.goalPos.x, this.goalPos.y);
             ctx.stroke();
             ctx.beginPath();
             ctx.setLineDash([]);
-            ctx.translate(this.goalPos.x * zoomLevel, this.goalPos.y * zoomLevel);
+            ctx.translate(this.goalPos.x, this.goalPos.y);
             ctx.rotate(this.goalPos.a + Math.PI/2);
             var gradient = ctx.createLinearGradient(14, -14, 14, 14);
             gradient.addColorStop(0.0, "#F3BB38");
@@ -791,7 +837,7 @@ class GameObject {
             ctx.closePath();
             ctx.fill();
             ctx.rotate(-this.goalPos.a - Math.PI/2);
-            ctx.translate(-this.goalPos.x * zoomLevel, -this.goalPos.y * zoomLevel);
+            ctx.translate(-this.goalPos.x, -this.goalPos.y);
         }
         if (this.bodyHovered) {
             ctx.fillStyle = "#F3BB38";
@@ -1362,7 +1408,7 @@ class Game {
         }
     }
 
-    renderGameboard(interpolator, zoomLevel = 0.3) {
+    renderGameboard(interpolator, zoomLevel) {
         this.ctx.fillStyle = "#111111";
         this.ctx.save();
         if (this.bgCall) {
@@ -1370,22 +1416,23 @@ class Game {
         }
         this.ctx.drawImage(document.getElementById("background"), 0, 0); //offx, offy);
         this.ctx.translate(window.innerWidth / 2 - this.cX, window.innerHeight / 2 - this.cY);
+        this.ctx.scale(zoomLevel, zoomLevel);
         this.ctx.strokeStyle = "white";
         this.ctx.lineWidth = 4;
-        this.ctx.strokeRect(0, 0, this.gamesize * zoomLevel, this.gamesize * zoomLevel);
+        this.ctx.strokeRect(0, 0, this.gamesize, this.gamesize);
         //this.ctx.fillRect(0, 0, this.gamesize, this.gamesize);
         Object.values(this.objects).forEach((item) => {
-            item.draw(this, interpolator, zoomLevel);
+            item.draw(this, interpolator);
         });
         if (DEBUG) {
             this.deletePoints.forEach(item => {
                 this.ctx.beginPath();
-                this.ctx.arc(item[0] * zoomLevel, item[1] * zoomLevel, 5, 0, Math.PI * 2);
+                this.ctx.arc(item[0], item[1], 5, 0, Math.PI * 2);
                 this.ctx.fill();
             });
         }
         this.ctx.fillStyle = "black";
-        this.ctx.fillRect(this.gameX * zoomLevel - 5, this.gameY * zoomLevel - 5, 10, 10);
+        this.ctx.fillRect(this.gameX - 5, this.gameY - 5, 10, 10);
         this.ctx.restore();
     }
 
@@ -1490,8 +1537,8 @@ class Game {
     }
 
     doMouse() {
-        this.gameX = Math.round(clamp(0, Math.round((this.cX + this.mouseX - window.innerWidth / 2)/this.zoomLevel), this.gamesize));
-        this.gameY = Math.round(clamp(0, Math.round((this.cY + this.mouseY - window.innerHeight / 2)/this.zoomLevel), this.gamesize));
+        this.gameX = Math.round(clamp(0, Math.round((this.cX + this.mouseX - window.innerWidth / 2))/this.zoomLevel, this.gamesize));
+        this.gameY = Math.round(clamp(0, Math.round((this.cY + this.mouseY - window.innerHeight / 2))/this.zoomLevel, this.gamesize));
         this.status.mouseWithinNarrowField = this.mouseFieldCheck(400);
         this.status.mouseWithinWideField = this.mouseFieldCheck(600);
         if (this.castle) {
@@ -1719,7 +1766,7 @@ function play() {
             }
             else{
                 game.keysDown[evt.key] = false;
-                if (evt.key == "i") {
+                if (evt.key == "i" && !game.isRTF) { //rtfs can't open inventory
                     game.sidebar.isInventory = !game.sidebar.isInventory;
                 }
             }
@@ -1787,7 +1834,18 @@ function guessWS() {
     Gonna try to avoid that!
 */
 
-randomizeBanner();
+if (localStorage.banner) {
+    document.getElementById("banner").value = localStorage.banner;
+}
+else {
+    randomizeBanner();
+}
+
+var bannerEl = document.getElementById("banner");
+bannerEl.onchange = () => {
+    localStorage.banner = document.getElementById("banner").value;
+};
+
 
 if (Notification.permission == "default") {
     screen("allownotifs");
