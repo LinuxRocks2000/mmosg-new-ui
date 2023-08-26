@@ -744,6 +744,18 @@ class GameObject {
         ctx.rotate(a);
         if (this.type == "R") {
             ctx.drawImage(document.querySelector("img#rtf"), -40, -40);
+            var dX = this.xOld - this.x;
+            var dY = this.yOld - this.y;
+            dX *= dX;
+            dY *= dY;
+            if (master.castle == this) {
+                if (master.controls.up) {
+                    master.drawThruster(0, 40, 20, 20, 15);
+                }
+            }
+            else if (dX + dY > 25) {
+                master.drawThruster(0, 40, 20, 20, 15);
+            }
         }
         else if (this.type == "c") {
             ctx.drawImage(document.querySelector("img#castle"), -50, -50);
@@ -1203,6 +1215,20 @@ class Game {
             this.a2a--;
             this.comms.air2air(this.seeking.id);
         }
+    }
+
+    drawThruster(rX, rY, w1, h, w2) {
+        var pos = w2 * (Math.random() - 0.5);
+        var grd = this.ctx.createLinearGradient(rX, rY, rX, rY + h); // lovingly yoinked from https://github.com/landgreen/planetesimals
+        grd.addColorStop(0, 'rgba(160, 192, 255, 1)');
+        grd.addColorStop(1, 'rgba(160, 192, 255, 0)');
+        this.ctx.fillStyle = grd;
+        this.ctx.beginPath();
+        this.ctx.moveTo(rX - w1 / 2, rY);
+        this.ctx.lineTo(rX + w1 / 2, rY);
+        this.ctx.lineTo(rX + pos, rY + h - Math.random() * 5);
+        this.ctx.closePath();
+        this.ctx.fill();
     }
 
     onmessage(command, args) {
