@@ -1603,8 +1603,23 @@ class Game {
     }
 
     doMouse() {
-        this.gameX = Math.round(clamp(0, Math.round((this.cX + this.mouseX - window.innerWidth / 2))/this.zoomLevel, this.gamesize));
-        this.gameY = Math.round(clamp(0, Math.round((this.cY + this.mouseY - window.innerHeight / 2))/this.zoomLevel, this.gamesize));
+        if (this.status.isRTF && this.accurateRTF && !this.status.moveShips) {
+            var dX = this.mouseX - window.innerWidth / 2;
+            var dY = this.mouseY - window.innerHeight/2;
+            dX /= this.zoomLevel;
+            dY /= this.zoomLevel;
+            var magnitude = Math.sqrt(dX * dX + dY * dY);
+            var angle = Math.atan2(dY, dX);
+            angle += this.castle.a;
+            this.gameX = this.castle.x + Math.cos(angle) * magnitude;
+            this.gameY = this.castle.y + Math.sin(angle) * magnitude;
+        }
+        else {
+            this.gameX = Math.round((this.cX + this.mouseX - window.innerWidth / 2)) / this.zoomLevel;
+            this.gameY = Math.round((this.cY + this.mouseY - window.innerHeight / 2)) / this.zoomLevel;
+        }
+        this.gameX = Math.round(clamp(0, this.gameX, this.gamesize));
+        this.gameY = Math.round(clamp(0, this.gameY, this.gamesize));
         this.status.mouseWithinNarrowField = this.mouseFieldCheck(400);
         this.status.mouseWithinWideField = this.mouseFieldCheck(600);
         if (this.castle) {
