@@ -32,7 +32,7 @@
                     <input type="text" name="server-url" id="server-url" placeholder="Server URL" />
                     <h2>Spectator Mode</h2>
                     <input type="checkbox" name="spectator" id="spectator" onchange="updateForm()">
-                    Spectating? <label for="spectator" id="speclabel"></label>
+                    Spectating? <label for="spectator" id="speclabel" class="fancycheck"></label>
                     <h2 class="hide_when_spectating">Banner</h2>
                     <input class="hide_when_spectating" type="text" name="banner-name" id="banner" placeholder="Your anonymous handle" onfocusout="randomizeBanner()"/>
                     <h2 class="hide_when_spectating">Password</h2>
@@ -44,6 +44,10 @@
                     <label class="hide_when_spectating" for="rtf">RTF (Real Time Fighter; x2 fighters, 0c)</label>
                     <input type="radio" name="playmode" id="defender" class="playmode" value="defender">
                     <label class="hide_when_spectating" for="defender">Defensive (Strategic; x2 fighters, x2 turrets, 25c)</label>
+                    <h2>Performance Controls</h2>
+                    <input type="checkbox" name="fancybg" id="fancybg" onchange="updateForm()" checked>
+                    Fancy background? <label for="fancybg" class="fancycheck"></label><br>
+                    <small>(Disabling this may improve performance on some browsers and systems)</small>
                     <button type="submit">Start</button>
                 </form>
             </div>

@@ -1,4 +1,5 @@
 const DEBUG = false;
+const BARE = false;
 const INTERPOLATE = true;
 
 function clamp(min, val, max) {
@@ -1208,6 +1209,7 @@ class Game {
     start(formdata) {
         var isSpectating = formdata.get("spectator") == "on";
         this.comms.connect(formdata.get("banner-name"), formdata.get("password-input"), formdata.get("playmode"), isSpectating);
+        this.fancyBackground = formdata.get("fancybg") == "on";
     }
     
     air2air() {
@@ -1235,7 +1237,9 @@ class Game {
         if (command == "m") {
             this.gamesize = args[0] - 0;
             screen("gameui");
-            this.bgCall = prerenderBackground(this.gamesize); // Pre-draw the background image onto a hidden canvas
+            if (!BARE && this.fancyBackground) {
+                this.bgCall = prerenderBackground(this.gamesize); // Pre-draw the background image onto a hidden canvas
+            }
             this._main();
         }
         else if (command == "t") {
@@ -1466,8 +1470,8 @@ class Game {
         this.ctx.save();
         if (this.bgCall) {
             this.bgCall(this.cX - window.innerWidth / 2, this.cY - window.innerHeight / 2);
+            this.ctx.drawImage(document.getElementById("background"), 0, 0); //offx, offy);
         }
-        this.ctx.drawImage(document.getElementById("background"), 0, 0); //offx, offy);
         this.ctx.translate(window.innerWidth / 2 - this.cX, window.innerHeight / 2 - this.cY);
         this.ctx.scale(zoomLevel, zoomLevel);
         this.ctx.strokeStyle = "white";
@@ -1538,7 +1542,9 @@ class Game {
     renderUI(interpolator) {
         this.ctx.translate(0, -this.sideScroll);
         //this.sidebar.isInventory = this.keysDown["i"] || this.sidebar.inventorySelected;
-        this.sidebar.draw(this, interpolator);
+        if (!BARE) {
+            this.sidebar.draw(this, interpolator);
+        }
         this.ctx.translate(0, this.sideScroll);
         this.ctx.fillStyle = "black";
         this.ctx.fillRect(0, 0, window.innerWidth, 56);
@@ -1558,7 +1564,7 @@ class Game {
     }
 
     renderLoop() { // Is called as much as possible; draws things and does smooth rendering
-        this.ctx.fillStyle = "lightcoral";
+        this.ctx.fillStyle = "rgb(0, 0, 25)";
         var interpolator = (window.performance.now() - this.status.lastTickTime) / this.status.tickTime;
         if (!INTERPOLATE) {
             interpolator = 1; // not 0, because then it'd be a frame behind at all times

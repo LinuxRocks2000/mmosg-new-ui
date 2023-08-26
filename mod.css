@@ -128,15 +128,15 @@ input[type="checkbox"] {
     cursor: pointer;
 }
 
-input + #speclabel {
+input + .fancycheck {
     background-color: red;
 }
 
-input:checked + #speclabel {
+input:checked + .fancycheck {
     background-color: green;
 }
 
-#speclabel {
+.fancycheck {
     width: 60px;
     border-radius: 100vw;
     height: 25px;
@@ -144,7 +144,7 @@ input:checked + #speclabel {
     position: relative;
 }
 
-#speclabel::after {
+.fancycheck::after {
     content: "";
     border-radius: 100vw;
     height: 20px;
@@ -159,7 +159,7 @@ input:checked + #speclabel {
     transform: translateX(0);
 }
 
-input:checked + #speclabel::after {
+input:checked + .fancycheck::after {
     left: 100%;
     transform: translateX(-100%);
 }
@@ -237,4 +237,8 @@ img {
 
 .hidden {
     display: none !important;
+}
+
+small {
+    font-size: 0.7em !important;
 }
