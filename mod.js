@@ -1218,7 +1218,7 @@ class Game {
     }
     
     air2air() {
-        if (this.seeking) {
+        if (this.seeking && this.a2a > 0) {
             this.a2a--;
             this.comms.air2air(this.seeking.id);
         }
