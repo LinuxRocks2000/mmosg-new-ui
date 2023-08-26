@@ -1008,6 +1008,7 @@ class Game {
         this.health = -1;
         this.hasPlacedCastle = false;
         this.castle = undefined;
+        this.accurateRTF = false;
         this.ctx.makeRoundRect = function (x, y, width, height, rx, ry) { // Stolen from #platformer
             this.translate(x, y);
             this.moveTo(rx, 0);
@@ -1473,6 +1474,11 @@ class Game {
             this.ctx.drawImage(document.getElementById("background"), 0, 0); //offx, offy);
         }
         this.ctx.translate(window.innerWidth / 2 - this.cX, window.innerHeight / 2 - this.cY);
+        if (this.status.isRTF && this.accurateRTF && !this.status.moveShips) {
+            this.ctx.translate(this.cX, this.cY);
+            this.ctx.rotate(-this.castle.getA(interpolator));
+            this.ctx.translate(-this.cX, -this.cY);
+        }
         this.ctx.scale(zoomLevel, zoomLevel);
         this.ctx.strokeStyle = "white";
         this.ctx.lineWidth = 4;
@@ -1833,11 +1839,14 @@ function play() {
             }
             else{
                 game.keysDown[evt.key] = false;
-                if (evt.key == "i" && !game.isRTF) { //rtfs can't open inventory
+                if (evt.key == "i") {
                     game.sidebar.isInventory = !game.sidebar.isInventory;
                 }
                 if (evt.key == "e" && game.status.isRTF) {
                     game.air2air();
+                }
+                if (evt.key == "r" && game.status.isRTF) {
+                    game.accurateRTF = !game.accurateRTF;
                 }
             }
         });
