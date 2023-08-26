@@ -111,9 +111,16 @@
                     This is a list of commands clients may send to servers, in ASCII order (check the ASCII table for specifics, but it's really very intuitive).
                 </p>
                 <p>
-                    <i>This list is updated to match the Rust version server. Some clients do not necessarily implement these!</i>
+                    <i>This list is updated to match the Rust version server. Some clients may not necessarily implement all of these, and some clients may implement more commands for modified servers.</i>
                 </p>
                 <ul>
+                    <li>
+                        <h3 class="framedesc">A
+                            <span>id<span>The ID of the object the A2A weapon will target.</span></span>
+                        </h3>
+                        Fire off an Air-To-Air weapon - at the moment, only seeking missiles. The client should immediately deduct one from the
+                        A2A inventory count, and should never fire on 0 or less - this will result in immediate disconnect. See A in <a href="#protocol+listserver">List of Commands from Server to Client</a> for more information.
+                    </li>
                     <li>
                         <h3 class="framedesc">C
                             <span>cost<span>The amount to deduct.</span></span>
@@ -217,6 +224,12 @@
                         This client is a team leader. <b>Note: while Team Leaders can't do much at the moment, they will eventually have significant power. Keep watching this section!</b>
                     </li>
                     <li>
+                        <h3 class="framedesc">A</h3>
+                        No arguments. Specifies that an air-to-air weapon has been equipped; in the future, will add an argument for the type (right now there's
+                        only one type). Clients must keep count of the number of air-to-air weapons they've equipped - attempting to use a nonexistent A2A will
+                        result in immediate disconnection.
+                    </li>
+                    <li>
                         <h3 class="framedesc">B
                             <span>message<span>The message sent to the chatroom.</span></span>
                             <span>sender<span>The banner of the sender. 0 for server owner.</span></span>
@@ -316,13 +329,16 @@
                             <span>banner<span>The banner of this object. See <a href="#banners">Aside: The Banner System</a>.</span></span>
                             <span>width<span>The physical width. Can be ignored in most cases, as long as the graphics roughly line up; this is, however, very important with variable-width obstacles like Radiation and Blocks</span></span>
                             <span>height<span>The physical height.</span></span>
+                            <span>...<span>Every additional argument is an upgrade.</span></span>
                         </h3>
                         New block message. The ID is unique among all blocks, but may be the same as a banner. There is enough data to establish a BBOX of the rotated object;
                         this is necessary for boundary checking when placing a new object. New objects are sent in a big chunk at the start of the game (before metadata is sent),
                         and then all throughout when pieces are placed and bullets are shot. The banner of a piece is the banner it flies under - this is useful for ownership checks
                         in team games, because you can determine what team it belongs to based on the team of the owning client. While team members can't move each other's pieces,
                         it's very useful to know what pieces are friendly (on the team) and which aren't. It is acceptable to show friendly objects (on the same team) on minimaps,
-                        even if they are compass-cloaked.
+                        even if they are compass-cloaked.<br>
+                        <b>Note August 25, 2023:</b> It was previously omitted that extra arguments to n are object upgrades. This is important because sometimes you'll join an arena with already-upgraded RTFS!
+                        They're fairly simply encoded - just direct upgrade strings until the new command is over.
                     </li>
                     <li>
                         <h3 class="framedesc">p</h3>

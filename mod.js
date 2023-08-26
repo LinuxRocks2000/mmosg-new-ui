@@ -144,6 +144,10 @@ class Protocol extends EventTarget {
         this.send("C", [amount]);
     }
 
+    air2air(id) {
+        this.send("A", [id]);
+    }
+
     rtf(thrust, left, right, brake, shoot) {
         if (thrust || left || right || brake || shoot) { // don't ever send an empty R frame, that's stupid
             thrust = thrust ? "1" : "0";
@@ -495,12 +499,15 @@ class Sidebar {
             ctx.fillRect(46 + parent.gameX * scaleX - 1, 66 + parent.gameY * scaleY - 1, 2, 2);
         });
 
-        ctx.font = "14px 'Chakra Petch'";
-        ctx.fillStyle = "#CCC";
-        ctx.fillText("UPGRADES", 18, 503 + 14);
-        this.drawUpgradeBar(ctx, "A", "Speed", 0.7, 0.5, 539);
-        this.drawUpgradeBar(ctx, "B", "Damage", 0.8, 0.1, 573);
-        this.drawUpgradeBar(ctx, "C", "Health", 0.3, 0.2, 607);
+        if (parent.castle) {
+            ctx.font = "14px 'Chakra Petch'";
+            ctx.fillStyle = "#CCC";
+            ctx.fillText("UPGRADES", 18, 448 + 14);
+            this.drawUpgradeBar(ctx, "A", "Reload", 1, parent.castle.upgrades.indexOf("b") == -1 ? 0 : 1, 505);
+            this.drawUpgradeBar(ctx, "B", "Cloaking", 0.7, 0.5, 539);
+            this.drawUpgradeBar(ctx, "C", "Speed", 0.8, 0.1, 573);
+            this.drawUpgradeBar(ctx, "D", "Healing", 0.3, 0.2, 607);
+        }
     }
 
     drawUpgradeBar(ctx, lItem, label, projected, current, rootY) {
@@ -524,7 +531,7 @@ class Sidebar {
         ctx.rect(69, rootY, 162 * projected, 8);
         ctx.clip();
         ctx.beginPath();
-        for (var i = -2; i < 40; i ++) {
+        for (var i = -2; i < 42; i ++) {
             ctx.moveTo(69 + i * 4, rootY + 8);
             ctx.lineTo(69 + i * 4 + 8, rootY);
         }
@@ -871,6 +878,11 @@ class GameObject {
                 ctx.fillText(toPrint, x - 38 - tooltipWidth, y - tooltipHeight / 2 + 36);
             }
         }
+        if (master.seeking == this) {
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = "green";
+            ctx.strokeRect(this.x - 50, this.y - 50, 100, 100);
+        }
     }
 
     isChanged() {
@@ -1058,6 +1070,8 @@ class Game {
         this.mine = [];
         this.locked = false; // for objects to not be edited at the same time
         this.keysDown = {};
+        this.a2a = 0;
+        this.seekTime = 0;
         if (DEBUG) {
             this.deletePoints = [];
         }
@@ -1183,6 +1197,13 @@ class Game {
         var isSpectating = formdata.get("spectator") == "on";
         this.comms.connect(formdata.get("banner-name"), formdata.get("password-input"), formdata.get("playmode"), isSpectating);
     }
+    
+    air2air() {
+        if (this.seeking) {
+            this.a2a--;
+            this.comms.air2air(this.seeking.id);
+        }
+    }
 
     onmessage(command, args) {
         if (command == "m") {
@@ -1255,6 +1276,9 @@ class Game {
         }
         else if (command == "n") {
             this.objects[args[1]] = new GameObject(this, args[2] - 0, args[3] - 0, args[7] - 0, args[8] - 0, args[4] - 0, args[0], args[5] == "1", args[1], args[6] - 0);
+            for (var i = 9; i < args.length; i++) {
+                this.objects[args[1]].upgrades.push(args[i]);
+            }
             if ((args[0] == "c" || args[0] == "R") && this.mine.indexOf(args[1]) != -1) {
                 this.castle = this.objects[args[1]];
                 if (args[0] == "R") {
@@ -1316,6 +1340,9 @@ class Game {
                     ];
                 }
             }
+        }
+        else if (command == "A") { 
+            this.a2a++;
         }
         else if (command == "M") {
             var obj = this.objects[args[0]];
@@ -1461,6 +1488,7 @@ class Game {
         this.ctx.font = "16px 'Chakra Petch'";
         this.ctx.fillStyle = "#CBCAFF";
         this.ctx.fillText(this.status.score, window.innerWidth - 18, 28 + 6 + 21 / 2);
+        this.ctx.fillText(this.a2a, window.innerWidth - 18, 28 + 6 + 21 * 2);
         this.ctx.fillStyle = "white";
         this.ctx.textAlign = "left";
         var word = this.status.getTableBite();
@@ -1559,7 +1587,7 @@ class Game {
     interactionLoop() { // Is called as much as possible; handles interaction with the user
         this.doMouse();
         Object.values(this.objects).forEach((item) => {
-            item.bodyHovered = (this.gameX > item.x         - 10 && this.gameX < item.x         + 10 && this.gameY > item.y         - 10 && this.gameY < item.y         + 10)
+            item.bodyHovered = (this.gameX > item.x         - 25 && this.gameX < item.x         + 25 && this.gameY > item.y         - 25 && this.gameY < item.y         + 25)
             item.isHovered = item.bodyHovered ||
                                (this.gameX > item.goalPos.x - 5  && this.gameX < item.goalPos.x + 5  && this.gameY > item.goalPos.y - 5  && this.gameY < item.goalPos.y + 5);
             item.interact(this);
@@ -1586,6 +1614,9 @@ class Game {
         this.cX = clamp(0, this.cX, this.gamesize * this.zoomLevel);
         this.cY = clamp(0, this.cY, this.gamesize * this.zoomLevel);
         this.sideScroll = clamp(0, this.sideScroll, this.sidebar.scrollHeight - window.innerHeight + 56)
+        if (window.performance.now() - this.seekTime > 4000) {
+            this.seeking = undefined;
+        }
     }
 
     talk() { // Call every server tick; sends things to the server
@@ -1654,6 +1685,10 @@ class Game {
                     Object.values(this.objects).forEach(item => {
                         if (item.isOurs) {
                             item.click(this);
+                        }
+                        else if (item.isHovered && this.status.isRTF && item.type == "R") {
+                            this.seeking = item;
+                            this.seekTime = window.performance.now();
                         }
                     });
                 }
@@ -1768,6 +1803,9 @@ function play() {
                 game.keysDown[evt.key] = false;
                 if (evt.key == "i" && !game.isRTF) { //rtfs can't open inventory
                     game.sidebar.isInventory = !game.sidebar.isInventory;
+                }
+                if (evt.key == "e" && game.status.isRTF) {
+                    game.air2air();
                 }
             }
         });
