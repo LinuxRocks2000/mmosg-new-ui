@@ -484,7 +484,11 @@ class Sidebar {
             }
             else if (obj.type == "B") {
                 ctx.fillStyle = "#555";
-                ctx.fillRect(convertedX - convertedW/2, convertedY - convertedH/2, convertedW, convertedH);
+                ctx.translate(convertedX, convertedY);
+                ctx.rotate(obj.a);
+                ctx.fillRect(-convertedW / 2, -convertedH / 2, convertedW, convertedH);
+                ctx.rotate(-obj.a);
+                ctx.translate(-convertedX, -convertedY);
             }
             else {
                 ctx.beginPath();
@@ -781,7 +785,7 @@ class GameObject {
             for (var i = 0; i < 6; i++) {
                 ctx.fillRect(-w / 2 + i * 80, -h / 2, 10, h);
             }
-            ctx.fillRect(-w/2, -5 * zoomLevel, w, 10);
+            ctx.fillRect(-w/2, -5, w, 10);
         }
         else if (this.type == "t") {
             ctx.rotate(Math.PI / 2);
@@ -1644,6 +1648,17 @@ class Game {
             item.isHovered = item.bodyHovered ||
                                (this.gameX > item.goalPos.x - 5  && this.gameX < item.goalPos.x + 5  && this.gameY > item.goalPos.y - 5  && this.gameY < item.goalPos.y + 5);
             item.interact(this);
+
+            if (this.status.isRTF && item.type == "R" && item != this.castle) {
+                var dx = this.gameX - item.x;
+                var dy = this.gameY - item.y;
+                dx *= dx;
+                dy *= dy;
+                if (dx + dy < 100 * 100) {
+                    this.seeking = item;
+                    this.seekTime = window.performance.now();
+                }
+            }
         });
 
         this.controls.up = this.keysDown["ArrowUp"] || this.keysDown["w"];
@@ -1667,7 +1682,7 @@ class Game {
         this.cX = clamp(0, this.cX, this.gamesize * this.zoomLevel);
         this.cY = clamp(0, this.cY, this.gamesize * this.zoomLevel);
         this.sideScroll = clamp(0, this.sideScroll, this.sidebar.scrollHeight - window.innerHeight + 56)
-        if (window.performance.now() - this.seekTime > 4000) {
+        if (window.performance.now() - this.seekTime > 6000) {
             this.seeking = undefined;
         }
     }
@@ -1738,10 +1753,6 @@ class Game {
                     Object.values(this.objects).forEach(item => {
                         if (item.isOurs) {
                             item.click(this);
-                        }
-                        else if (item.isHovered && this.status.isRTF && item.type == "R") {
-                            this.seeking = item;
-                            this.seekTime = window.performance.now();
                         }
                     });
                 }
