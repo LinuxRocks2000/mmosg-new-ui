@@ -608,7 +608,9 @@ class Sidebar {
                         if (item.stack) {
                             item.stack--;
                         }
-                        parent.comms.cost(item.cost);
+                        if (!item.place.upgrade) {
+                            parent.comms.cost(item.cost);
+                        }
                     }
                     if (item.place.cbk) {
                         item.place.cbk();
@@ -1649,14 +1651,21 @@ class Game {
                                (this.gameX > item.goalPos.x - 5  && this.gameX < item.goalPos.x + 5  && this.gameY > item.goalPos.y - 5  && this.gameY < item.goalPos.y + 5);
             item.interact(this);
 
+            var dx = this.gameX - item.x;
+            var dy = this.gameY - item.y;
+            dx *= dx;
+            dy *= dy;
+            var d2 = dy + dx;
+
             if (this.status.isRTF && (item.type == "R" || item.type == "a") && item != this.castle) {
-                var dx = this.gameX - item.x;
-                var dy = this.gameY - item.y;
-                dx *= dx;
-                dy *= dy;
-                if (dx + dy < 100 * 100) {
+                if (d2 < 100 * 100) {
                     this.seeking = item;
                     this.seekTime = window.performance.now();
+                }
+            }
+            if (this.seeking == item) {
+                if (d2 > 700 * 700) {
+                    this.seeking = undefined; // no more seekies!
                 }
             }
         });
