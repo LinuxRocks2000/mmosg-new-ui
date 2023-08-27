@@ -1649,7 +1649,7 @@ class Game {
                                (this.gameX > item.goalPos.x - 5  && this.gameX < item.goalPos.x + 5  && this.gameY > item.goalPos.y - 5  && this.gameY < item.goalPos.y + 5);
             item.interact(this);
 
-            if (this.status.isRTF && item.type == "R" && item != this.castle) {
+            if (this.status.isRTF && (item.type == "R" || item.type == "a") && item != this.castle) {
                 var dx = this.gameX - item.x;
                 var dy = this.gameY - item.y;
                 dx *= dx;
