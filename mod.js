@@ -1061,8 +1061,8 @@ class Game {
             ticksRemaining() {
                 return this.wait ? this.countdown : this.counter;
             },
-            getTimes() {
-                var _ms = this.ticksRemaining() * this.tickTime;
+            getTimes(interpolator) {
+                var _ms = this.ticksRemaining() * this.tickTime + interpolator * this.tickTime;
                 var _secs = _ms / 1000;
                 var minutes = Math.floor(_secs / 60);
                 var seconds = Math.floor(_secs % 60);
@@ -1070,8 +1070,8 @@ class Game {
                 hundreds = Math.round(hundreds * 100);
                 return [minutes, seconds, hundreds];
             },
-            getTimeString() {
-                var times = this.getTimes();
+            getTimeString(interpolator) {
+                var times = this.getTimes(interpolator ? interpolator : 0);
                 return "- " + zeroes("" + times[0]) + ":" + zeroes("" + times[1]) + ":" + zeroes("" + times[2]);
             }
         };
@@ -1520,7 +1520,7 @@ class Game {
         return false;
     }
 
-    drawStatus() {
+    drawStatus(interpolator) {
         this.ctx.fillStyle = "#555555";
         this.ctx.font = "12px 'Chakra Petch'";
         this.ctx.textAlign = "left";
@@ -1543,7 +1543,7 @@ class Game {
         this.ctx.fillText(this.status.getChairBites(), 18 + width + 13, 28 + 6 + 21 / 2);
         width += 13 + this.ctx.measureText(word).width;
         this.ctx.fillStyle = "#CBCAFF";
-        this.ctx.fillText(this.status.getTimeString(), 18 + width + 17, 28 + 6 + 21 / 2);
+        this.ctx.fillText(this.status.getTimeString(interpolator), 18 + width + 17, 28 + 6 + 21 / 2);
         if (this.cantPlace()) {
             this.ctx.fillStyle = "red";
             this.ctx.textAlign = "center";
@@ -1572,7 +1572,7 @@ class Game {
         this.ctx.quadraticCurveTo(window.innerWidth - 56, window.innerHeight - 56, window.innerWidth - 56, window.innerHeight - 80);
         this.ctx.lineTo(window.innerWidth - 56, window.innerHeight - 56);
         this.ctx.fill();
-        this.drawStatus();
+        this.drawStatus(interpolator);
     }
 
     renderLoop() { // Is called as much as possible; draws things and does smooth rendering
@@ -1664,7 +1664,7 @@ class Game {
                 }
             }
             if (this.seeking == item) {
-                if (d2 > 700 * 700) {
+                if (d2 > 1500 * 1500) {
                     this.seeking = undefined; // no more seekies!
                 }
             }
