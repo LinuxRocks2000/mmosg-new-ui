@@ -1552,6 +1552,9 @@ class Game {
     }
 
     renderUI(interpolator) {
+        const MARKER_SPACING = 40;
+        const MARKER_START_X = 322;
+        const MARKER_START_Y = 122;
         this.ctx.translate(0, -this.sideScroll);
         //this.sidebar.isInventory = this.keysDown["i"] || this.sidebar.inventorySelected;
         if (!BARE) {
@@ -1573,6 +1576,37 @@ class Game {
         this.ctx.lineTo(window.innerWidth - 56, window.innerHeight - 56);
         this.ctx.fill();
         this.drawStatus(interpolator);
+        var offsetX = (this.cX - window.innerWidth/2) % MARKER_SPACING;
+        var offsetY = (this.cY - window.innerHeight/2) % MARKER_SPACING;
+        this.ctx.strokeStyle = "white";
+        for (var i = 0; i < (window.innerWidth - 266 - 118) / MARKER_SPACING; i++) {
+            var m_x = Math.round(MARKER_START_X + i * MARKER_SPACING - offsetX);
+            this.ctx.beginPath();
+            this.ctx.lineWidth = 2;
+            this.ctx.moveTo(m_x, 32);
+            this.ctx.lineTo(m_x, 48);
+            this.ctx.stroke();
+            this.ctx.fillStyle = "#777";
+            this.ctx.font = "8px 'Chakra Petch'";
+            this.ctx.textAlign = "center";
+            var tX = MARKER_START_X + i * MARKER_SPACING - offsetX;
+            var pout = Math.round((tX - window.innerWidth/2 + this.cX)/MARKER_SPACING);
+            this.ctx.fillText(pout, tX + MARKER_SPACING / 2, 46);
+        }
+        for (var i = 0; i < (window.innerHeight - 118 - 112) / MARKER_SPACING; i++) {
+            var m_y = Math.round(MARKER_START_Y + i * MARKER_SPACING - offsetY);
+            this.ctx.beginPath();
+            this.ctx.lineWidth = 2;
+            this.ctx.moveTo(window.innerWidth - 32, m_y);
+            this.ctx.lineTo(window.innerWidth - 48, m_y);
+            this.ctx.stroke();
+            this.ctx.fillStyle = "#777";
+            this.ctx.font = "8px 'Chakra Petch'";
+            this.ctx.textAlign = "left";
+            var tY = MARKER_START_Y + i * MARKER_SPACING - offsetY;
+            var pout = Math.round((tY - window.innerHeight/2 + this.cY)/MARKER_SPACING);
+            this.ctx.fillText(pout, window.innerWidth - 46, tY + MARKER_SPACING / 2);
+        }
     }
 
     renderLoop() { // Is called as much as possible; draws things and does smooth rendering
