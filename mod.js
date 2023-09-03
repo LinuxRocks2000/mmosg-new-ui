@@ -337,7 +337,7 @@ class Sidebar {
                 var dx = object.getX(interpolator) - parent.castle.getX(interpolator);
                 var dy = object.getY(interpolator) - parent.castle.getY(interpolator);
                 var dist = dx * dx + dy * dy;
-                if (!object.isOurs && dist < nearestValue && object.type != 'b' && object.isCompassVisible()) { // keep this as isOurs because this reports for everything that isn't distinctly controlled by us
+                if (!object.isOurs && dist < nearestValue && object.type != 'B' && object.isCompassVisible()) { // keep this as isOurs because this reports for everything that isn't distinctly controlled by us
                     nearestValue = dist;
                 }
                 if (dist < 400 * 400 && object.isCompassVisible() && object != parent.castle) {
@@ -990,7 +990,7 @@ class GameObject {
     }
 
     isCompassVisible() { // Can it be seen on a compass?
-        const hidden = ["s", "b", "C", "w", "F"]; // List of types that can't be displayed on minimap/compass
+        const hidden = ["s", "b", "C", "w", "F", "R"]; // List of types that can't be displayed on minimap/compass
         var isSniper = this.upgrades.indexOf("s")!= -1;
         return this.isOurs || (hidden.indexOf(this.type) == -1 && !isSniper);
     }
