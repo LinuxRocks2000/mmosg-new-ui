@@ -998,7 +998,7 @@ class GameObject {
     }
 
     isCompassVisible() { // Can it be seen on a compass?
-        const hidden = ["s", "b", "C", "w", "F", "R"]; // List of types that can't be displayed on minimap/compass
+        const hidden = ["s", "b", "C", "w", "F", "r"]; // List of types that can't be displayed on minimap/compass
         var isSniper = this.upgrades.indexOf("s")!= -1;
         return this.isOurs || (hidden.indexOf(this.type) == -1 && !isSniper);
     }
