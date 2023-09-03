@@ -382,8 +382,16 @@ class Sidebar {
         ctx.fill();
         ctx.stroke();
 
+        var rUC = 0;
+        Object.values(parent.objects).forEach(object => {
+            if (object.rStrength) {
+                if (parent.gameX > object.x - object.w / 2 && parent.gameX < object.x + object.w / 2 && parent.gameY > object.y - object.h / 2 && parent.gameY < object.y + object.h / 2) {
+                    rUC += object.rStrength;
+                }
+            }
+        });
         this.drawSquaresReadout(ctx, parent.castle ? 1 - (parent.health / 3) : 1, 18, 945);
-        this.drawSquaresReadout(ctx, 0.5, 54, 945);
+        this.drawSquaresReadout(ctx, rUC, 54, 945);
         this.drawSquaresReadout(ctx, 1 - clamp(0, nearestValue / (800 * 800), 1), 90, 945)
         for (var i = 0; i < 33; i++) {
             if (i < 9) {
@@ -1294,6 +1302,9 @@ class Game {
         }
         else if (command == "e") {
             
+        }
+        else if (command == "r") {
+            this.objects[args[0]].rStrength = args[1] - 0;
         }
         else if (command == "d") {
             if (this.castle && args[0] == this.castle.id) {
