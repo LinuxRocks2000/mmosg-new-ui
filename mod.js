@@ -60,121 +60,6 @@ class ProtocolMessageReceivedEvent extends Event {
 }
 
 
-class Protocol extends EventTarget {
-    constructor(socket, onmessage) {
-        super();
-        this.socket = socket;
-        this.synchCallbach = onmessage;
-        socket.onmessage = (message) => { this.message_recvd(message) };
-        setInterval(() => {
-            this.isOnline = this.pong; // if it's received a pong in 500ms, it's online; otherwise, it is not. Either way send a ping.
-            this.ping();
-            this.pong = false; // After sending, we can't have received a pong!
-        }, 500);
-        this.isOnline = false;
-        this.rtfHasEmptied = true;
-    }
-
-    message_recvd(raw) {
-        this.pong = true; // If it's receiving anything, it's online
-        if (raw.data) {
-            var data = raw.data;
-            if (data == "_") { // If it's a pong message, do nothing, this is not meant for the game handler to see
-                return;
-            }
-            var command = data[0];
-            var args = [];
-            var i = 1;
-            var buffer = "";
-            while (i < data.length) {
-                var iEnd = i + data.charCodeAt(i);
-                while (i < iEnd) {
-                    i++;
-                    buffer += data[i];
-                }
-                args.push(buffer);
-                buffer = "";
-                i++;
-            }
-            if (command == "d") {
-                console.log("DELETED" + args[0]);
-            }
-            this.dispatchEvent(new ProtocolMessageReceivedEvent(command, args));
-            if (this.synchCallbach) {
-                this.synchCallbach(command, args);
-            }
-        }
-    }
-
-    send(command, args) {
-        if (!Array.isArray(args)) {
-            args = [args]; // Make sure args is a list
-        }
-        for (var i = 0; i < args.length; i++){
-            args[i] = "" + args[i]; // Convert all the arguments to strings
-        }
-        var message = command;
-        args.forEach(arg => {
-            message += String.fromCharCode(arg.length);
-            message += arg;
-        });
-        this.socket.send(message);
-    }
-
-    place(type, x, y) {
-        this.send('p', [type, x, y]);
-    }
-
-    ping() {
-        this.socket.send("_");
-    }
-
-    connect(banner, password, playMode, isSpectating) {
-        this.send('c', [
-            isSpectating ? "" : password,
-            banner,
-            isSpectating ? "spectator" : playMode
-        ]);
-    }
-
-    move(id, x, y, a) {
-         this.send("m", [id, x, y, a]);
-    }
-
-    cost(amount) {
-        this.send("C", [amount]);
-    }
-
-    air2air(id) {
-        this.send("A", [id]);
-    }
-
-    rtf(thrust, left, right, brake, shoot) {
-        if (thrust || left || right || brake || shoot) { // don't ever send an empty R frame, that's stupid
-            thrust = thrust ? "1" : "0";
-            left   = left   ? "1" : "0";
-            right  = right  ? "1" : "0";
-            brake  = brake  ? "1" : "0";
-            shoot  = shoot  ? "1" : "0";
-            this.send("R", [thrust, left, right, brake, shoot]);
-            this.rtfHasEmptied = false;
-        }
-        else if (!this.rtfHasEmptied) {
-            this.send("R", ["0", "0", "0", "0", "0"]);
-            this.rtfHasEmptied = true;
-        }
-    }
-
-    talk(message, scope) {
-        this.send("T", [message, scope]);
-    }
-
-    upgrade(id, upgrade) {
-        this.send("U", [id, upgrade]);
-    }
-}
-
-
 class Sidebar {
     constructor() {
         this.path = new Path2D();
@@ -261,15 +146,22 @@ class Sidebar {
             this.drawInventory(parent);
             return;
         }
-        ctx.fillStyle = "black";
-        ctx.fill(this.path);
-        ctx.beginPath();
-        ctx.roundRect(46, 66, 220, 210, 14);
-        ctx.fill();
-        ctx.fill(this.dumpass);
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = "white";
-        ctx.stroke(this.dumpass);
+        if (parent.minimalistic) {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+            ctx.fillRect(0, 56, 266, 1144);
+        }
+        else {
+            ctx.fillStyle = "black";
+            ctx.fill(this.path);
+            ctx.beginPath();
+            ctx.roundRect(46, 66, 220, 210, 14);
+            ctx.fill();
+            ctx.fill(this.dumpass);
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "white";
+            ctx.stroke(this.dumpass);
+        }
+
         ctx.font = "bold 14px 'Chakra Petch'";
         ctx.textAlign = "left";
         ctx.fillStyle = "white";
@@ -390,76 +282,80 @@ class Sidebar {
                 }
             }
         });
-        this.drawSquaresReadout(ctx, parent.castle ? 1 - (parent.health / 3) : 1, 18, 945);
-        this.drawSquaresReadout(ctx, rUC, 54, 945);
-        this.drawSquaresReadout(ctx, 1 - clamp(0, nearestValue / (800 * 800), 1), 90, 945)
-        for (var i = 0; i < 33; i++) {
-            if (i < 9) {
-                ctx.fillStyle = "red";
+        this.drawSquaresReadout(ctx, parent.castle ? 1 - parent.castle.health : 1, 18, 945, parent.minimalistic);
+        this.drawSquaresReadout(ctx, rUC, 54, 945, parent.minimalistic);
+        this.drawSquaresReadout(ctx, 1 - clamp(0, nearestValue / (800 * 800), 1), 90, 945, parent.minimalistic);
+        if (!parent.minimalistic) {
+            for (var i = 0; i < 33; i++) {
+                if (i < 9) {
+                    ctx.fillStyle = "red";
+                }
+                else if (i < 19) {
+                    ctx.fillStyle = "#F3BB38";
+                }
+                else if (i < 29) {
+                    ctx.fillStyle = "#2FED33";
+                }
+                else {
+                    ctx.fillStyle = "white";
+                }
+                ctx.fillRect(42, 945 + i * 6, 4, 2);
+                ctx.fillRect(78, 945 + i * 6, 4, 2);
             }
-            else if (i < 19) {
-                ctx.fillStyle = "#F3BB38";
-            }
-            else if (i < 29) {
-                ctx.fillStyle = "#2FED33";
-            }
-            else {
-                ctx.fillStyle = "white";
-            }
-            ctx.fillRect(42, 945 + i * 6, 4, 2);
-            ctx.fillRect(78, 945 + i * 6, 4, 2);
+            ctx.fillStyle = "red";
+            ctx.fillRect(18, 999, 88, 2);
         }
-        ctx.fillStyle = "red";
-        ctx.fillRect(18, 999, 88, 2);
         this.scrollHeight = 1144;
 
-        ctx.fillStyle = "white";
-        ctx.font = "12px 'Chakra Petch'";
-        ctx.fillText("EARLY WARNING SYSTEM", 42, 852);
-        var lert = clamp(0, nearestValue / (1200 * 1200), 1);
-        var lengths = [
-            218,
-            203,
-            183,
-            155,
-            120,
-            78
-        ];
-        lengths.forEach(item => {
-            this.drawBuuchie(ctx, "rgb(" + 255 * ((1 - lert) + (1 - (item - 78)/140) * 0.5) + ",0,0)", item - 18);
-        });
-        ctx.beginPath();
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 1;
-        ctx.moveTo(18, 884);
-        ctx.lineTo(185, 884);
-        ctx.moveTo(18, 905);
-        ctx.lineTo(153, 905);
-        ctx.stroke();
-        ctx.fillStyle = "black";
-        ctx.fillRect(17, 884, 185, 20);
-        var error = "OK";
-        if (nearestValue < 600 * 600) { // it's nearby
-            error = "NEAR THRESHOLD";
-        }
-        if (nearestValue < 400 * 400) {
-            error = "CLOSE PROXIMITY";
-            this.tick++; // make the flash twice as fast if you're in close proximity.
-        }
-        this.tick++;
-        if (this.tick > 60) {
-            this.tick = 0;
-        }
-        ctx.font = "12px 'Chakra Petch'";
-        ctx.fillStyle = "white";
-        ctx.fillText(error, 61, 899);
-        if (error != "OK") {
-            if (this.tick > 30) {
-                ctx.fillStyle = "red";
-                ctx.fillRect(18, 887, 39, 16);
-                ctx.fillStyle = "white";
-                ctx.font = "bold 12px 'Chakra Petch'";
-                ctx.fillText("WARN", 20, 899);
+        if (!parent.minimalistic) {
+            ctx.fillStyle = "white";
+            ctx.font = "12px 'Chakra Petch'";
+            ctx.fillText("EARLY WARNING SYSTEM", 42, 852);
+            var lert = clamp(0, nearestValue / (1200 * 1200), 1);
+            var lengths = [
+                218,
+                203,
+                183,
+                155,
+                120,
+                78
+            ];
+            lengths.forEach(item => {
+                this.drawBuuchie(ctx, "rgb(" + 255 * ((1 - lert) + (1 - (item - 78)/140) * 0.5) + ",0,0)", item - 18);
+            });
+            ctx.beginPath();
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 1;
+            ctx.moveTo(18, 884);
+            ctx.lineTo(185, 884);
+            ctx.moveTo(18, 905);
+            ctx.lineTo(153, 905);
+            ctx.stroke();
+            ctx.fillStyle = "black";
+            ctx.fillRect(17, 884, 185, 20);
+            var error = "OK";
+            if (nearestValue < 600 * 600) { // it's nearby
+                error = "NEAR THRESHOLD";
+            }
+            if (nearestValue < 400 * 400) {
+                error = "CLOSE PROXIMITY";
+                this.tick++; // make the flash twice as fast if you're in close proximity.
+            }
+            this.tick++;
+            if (this.tick > 60) {
+                this.tick = 0;
+            }
+            ctx.font = "12px 'Chakra Petch'";
+            ctx.fillStyle = "white";
+            ctx.fillText(error, 61, 899);
+            if (error != "OK") {
+                if (this.tick > 30) {
+                    ctx.fillStyle = "red";
+                    ctx.fillRect(18, 887, 39, 16);
+                    ctx.fillStyle = "white";
+                    ctx.font = "bold 12px 'Chakra Petch'";
+                    ctx.fillText("WARN", 20, 899);
+                }
             }
         }
         this.availability(ctx, "CASTLE PLACEMENT", 779, !parent.status.mouseWithinNarrowField);
@@ -516,14 +412,14 @@ class Sidebar {
             ctx.font = "14px 'Chakra Petch'";
             ctx.fillStyle = "#CCC";
             ctx.fillText("UPGRADES", 18, 448 + 14);
-            this.drawUpgradeBar(ctx, "A", "Reload", 1, parent.castle.upgrades.indexOf("b") == -1 ? 0 : 1, 505);
-            this.drawUpgradeBar(ctx, "B", "Cloaking", 0.7, 0.5, 539);
-            this.drawUpgradeBar(ctx, "C", "Speed", 0.8, 0.1, 573);
-            this.drawUpgradeBar(ctx, "D", "Healing", 0.3, 0.2, 607);
+            this.drawUpgradeBar(ctx, "A", "Reload", 1, parent.castle.upgrades.indexOf("b") == -1 ? 0 : 1, 505, parent.minimalistic);
+            this.drawUpgradeBar(ctx, "B", "Cloaking", 0.7, 0.5, 539, parent.minimalistic);
+            this.drawUpgradeBar(ctx, "C", "Speed", 0.8, 0.1, 573, parent.minimalistic);
+            this.drawUpgradeBar(ctx, "D", "Healing", 0.3, 0.2, 607, parent.minimalistic);
         }
     }
 
-    drawUpgradeBar(ctx, lItem, label, projected, current, rootY) {
+    drawUpgradeBar(ctx, lItem, label, projected, current, rootY, minimal) {
         ctx.font = "12px 'Chakra Petch'";
         ctx.textAlign = "left";
         var tWid = ctx.measureText(label).width;
@@ -539,19 +435,25 @@ class Sidebar {
         ctx.fillRect(69, rootY + 8 + 4, 162, 4);
         ctx.fillStyle = "white";
         ctx.fillRect(69, rootY + 8 + 4, 162 * current, 4);
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(69, rootY, 162 * projected, 8);
-        ctx.clip();
-        ctx.beginPath();
-        for (var i = -2; i < 42; i ++) {
-            ctx.moveTo(69 + i * 4, rootY + 8);
-            ctx.lineTo(69 + i * 4 + 8, rootY);
+        if (minimal) {
+            ctx.fillStyle = "#555";
+            ctx.fillRect(69, rootY, 162 * projected, 8);
         }
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 0.3;
-        ctx.stroke();
-        ctx.restore();
+        else {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(69, rootY, 162 * projected, 8);
+            ctx.clip();
+            ctx.beginPath();
+            for (var i = -2; i < 42; i ++) {
+                ctx.moveTo(69 + i * 4, rootY + 8);
+                ctx.lineTo(69 + i * 4 + 8, rootY);
+            }
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 0.3;
+            ctx.stroke();
+            ctx.restore();
+        }
     }
 
     availability(ctx, title, rootY, value) {
@@ -580,23 +482,31 @@ class Sidebar {
         ctx.stroke();
     }
 
-    drawSquaresReadout(ctx, valueOf, rootX, rootY) {
-        valueOf = clamp(0, valueOf, 1);
-        valueOf = 1 - valueOf;
-        valueOf *= 33;
-        for (var i = 0; i < 33; i++) {
-            if (i >= valueOf) {
-                if (i < 9) {
-                    ctx.fillStyle = "red";
+    drawSquaresReadout(ctx, valueOf, rootX, rootY, minimal) {
+        if (minimal) {
+            ctx.fillStyle = "white";
+            ctx.fillRect(rootX, rootY, 16, 194);
+            ctx.fillStyle = "#555";
+            ctx.fillRect(rootX, rootY + 194 * (1 - valueOf), 16, 194 * valueOf);
+        }
+        else {
+            valueOf = clamp(0, valueOf, 1);
+            valueOf = 1 - valueOf;
+            valueOf *= 33;
+            for (var i = 0; i < 33; i++) {
+                if (i >= valueOf) {
+                    if (i < 9) {
+                        ctx.fillStyle = "red";
+                    }
+                    else {
+                        ctx.fillStyle = "#B8B8B8";
+                    }
                 }
                 else {
-                    ctx.fillStyle = "#B8B8B8";
+                    ctx.fillStyle = "#222";
                 }
+                ctx.fillRect(rootX, rootY + i * 6, 16, 2);
             }
-            else {
-                ctx.fillStyle = "#222";
-            }
-            ctx.fillRect(rootX, rootY + i * 6, 16, 2);
         }
     }
 
@@ -615,18 +525,22 @@ class Sidebar {
                     else {
                         if (item.stack) {
                             item.stack--;
-                        }
+                        }/*
                         if (!item.place.upgrade) {
                             parent.comms.cost(item.cost);
-                        }
+                        }*/
                     }
                     if (item.place.cbk) {
                         item.place.cbk();
                     }
-                    if (item.place.upgrade) {
+                    if (item.place.upgrade) {/*
                         if (item.place.upgrade.effect == "castle") {
-                            parent.comms.upgrade(parent.castle.id, item.place.upgrade.word);
-                        }
+                            parent.upgrade(parent.castle.id, item.place.upgrade.word);
+                        }*/
+                        alert("DIRECT UPGRADES ARE DEPRECATED");
+                    }
+                    if (item.place.shop) {
+                        parent.shop(item.place.shop);
                     }
                 }
             }
@@ -654,6 +568,7 @@ class GameObject {
         this.isEditable = editable;
         this.id = id;
         this.banner = banner;
+        this.health = 0;
         this.upgrades = [];
         this.goalPos = {
             x: this.x,
@@ -746,6 +661,11 @@ class GameObject {
     }
 
     draw(master, interpolator) {
+        var lowX, lowY = master.transformPoint(this.box[0], this.box[1]);
+        var highX, highY = master.transformPoint(this.box[2], this.box[3]);
+        if (lowX > window.innerWidth || highX < 0 || lowY > window.innerHeight || highY < 0) {
+            return;
+        }
         var ctx = master.ctx;
         ctx.lineWidth = 2;
         ctx.globalAlpha = 1;
@@ -807,6 +727,9 @@ class GameObject {
             ctx.drawImage(document.querySelector("img#missile"), -13, -22);
             ctx.rotate(-Math.PI / 2);
         }
+        else if (this.type == "r") {
+
+        }
         else {
             ctx.strokeRect(-w / 2, -h / 2, w, h);
         }
@@ -856,10 +779,15 @@ class GameObject {
             ctx.setLineDash([]);
             ctx.translate(this.goalPos.x, this.goalPos.y);
             ctx.rotate(this.goalPos.a + Math.PI/2);
-            var gradient = ctx.createLinearGradient(14, -14, 14, 14);
-            gradient.addColorStop(0.0, "#F3BB38");
-            gradient.addColorStop(0.5, "transparent");
-            ctx.strokeStyle = gradient;
+            if (this.parent.minimalistic) {
+                ctx.strokeStyle = "#F3BB38";
+            }
+            else {
+                var gradient = ctx.createLinearGradient(14, -14, 14, 14);
+                gradient.addColorStop(0.0, "#F3BB38");
+                gradient.addColorStop(0.5, "transparent");
+                ctx.strokeStyle = gradient;
+            }
             //ctx.moveTo(this.goalPos.x * zoomLevel, this.goalPos.y * zoomLevel);
             //ctx.lineTo((this.goalPos.x + Math.cos(this.goalPos.a) * 20) * zoomLevel, (this.goalPos.y + Math.sin(this.goalPos.a) * 20) * zoomLevel);
             ctx.arc(0, 0, 14, 0, Math.PI * 2);
@@ -930,7 +858,7 @@ class GameObject {
         this.didMove = false;
         if (this.goalPos.hasChanged) {
             this.goalPos.hasChanged = false;
-            game.comms.move(this.id, this.goalPos.x, this.goalPos.y, this.goalPos.a);
+            game.move(this.id, this.goalPos.x, this.goalPos.y, this.goalPos.a);
         }
     }
 
@@ -1010,11 +938,24 @@ class GameObject {
 
 
 class Game {
-    constructor(socket) {
-        this.comms = new Protocol(socket, (d1, d2) => {this.onmessage(d1, d2)});
-        /*this.comms.addEventListener("protocolmessagereceived", (evt) => {
-            this.onmessage(evt.command, evt.args);
-        });*/
+    constructor(connection) {
+        this.comms = connection;
+        connection.listen((command, args) => {this.onmessage(command, args)});
+        var doPing = connection.sendHandle("Ping");
+        this.doPlace = connection.sendHandle("Place");
+        this.doConnect = connection.sendHandle("Connect");
+        this.move = connection.sendHandle("Move");
+        this.doA2A = connection.sendHandle("LaunchA2A");
+        this.upgrade = connection.sendHandle("UpgradeThing");
+        this.rtf = connection.sendHandle("PilotRTF");
+        this.chat = connection.sendHandle("Chat");
+        this.shop = connection.sendHandle("Shop");
+        this.setListeners(connection);
+        setInterval(() => {
+            this.status.online = this.ponged;
+            doPing();
+            this.ponged = false;
+        }, 100);
         this.gamesize = 0;
         this.zoomLevel = 0.7;
         this.canvas = document.getElementById("game");
@@ -1023,6 +964,7 @@ class Game {
         this.hasPlacedCastle = false;
         this.castle = undefined;
         this.accurateRTF = false;
+        this.lastFrameTime = 0;
         this.ctx.makeRoundRect = function (x, y, width, height, rx, ry) { // Stolen from #platformer
             this.translate(x, y);
             this.moveTo(rx, 0);
@@ -1052,8 +994,7 @@ class Game {
             wallsTurn: 2, // 2 every next turn, but Extra Walls can increase this.
             wait: true,
             score: 0,
-            countdown: 0, // Set by the ! command
-            counter: 0, // Set by the t command
+            counter: 0, // Set by ticks
             tickTime: 1000 / 30, // Number of milliseconds between ticks or !s; this is adjusted based on real-time data.
             lastTickTime: -1,
             canPlaceObject: false, // if the mouse is close to the home castle with 400 tolerance
@@ -1067,7 +1008,7 @@ class Game {
                 return this.wait ? "WAITING" : (this.moveShips ? "MOVE SHIPS" : "PLAY");
             },
             ticksRemaining() {
-                return this.wait ? this.countdown : this.counter;
+                return this.counter;
             },
             getTimes(interpolator) {
                 var _ms = this.ticksRemaining() * this.tickTime + interpolator * this.tickTime;
@@ -1099,6 +1040,7 @@ class Game {
         this.locked = false; // for objects to not be edited at the same time
         this.keysDown = {};
         this.a2a = 0;
+        this.ponged = false;
         this.seekTime = 0;
         if (DEBUG) {
             this.deletePoints = [];
@@ -1161,9 +1103,7 @@ class Game {
                 descriptionL1: "Place 2 extra walls around any castle or fort",
                 descriptionL2: "every turn.",
                 place: {
-                    cbk: () => {
-                        this.status.wallsTurn += 2;
-                    }
+                    shop: 'w'
                 }
             },
             {
@@ -1214,6 +1154,208 @@ class Game {
         ];
     }
 
+    setListeners (connection) {
+        connection.setOnMessage("New", (id, type, x, y, a, editable, banner, w, h) => {
+            type = String.fromCharCode(type);
+            this.objects[id] = new GameObject(this, x, y, w, h, a, type, editable, id, banner);
+            if ((type == "c" || type == "R") && this.mine.indexOf(id) != -1) {
+                this.castle = this.objects[id];
+                if (type == "R") {
+                    this.status.isRTF = true;
+                    this.inventory = [
+                        {
+                            name: "FASTER GUN",
+                            cost: 30,
+                            stack: 1,
+                            descriptionL1: "Significantly decrease RTF main gun shot cooldown.",
+                            descriptionL2: "",
+                            place: {
+                                shop: 'g'
+                            }
+                        },
+                        {
+                            name: "SNIPER",
+                            cost: 40,
+                            stack: 1,
+                            descriptionL1: "Make the RTF invisible on any scopes,",
+                            descriptionL2: "including local-area compass.",
+                            place: {
+                                shop: 's'
+                            }
+                        },
+                        {
+                            name: "SPEEDSHIP",
+                            cost: 70,
+                            stack: 1,
+                            descriptionL1: "Significantly increase RTF flight speed.",
+                            descriptionL2: "",
+                            place: {
+                                shop: 'f'
+                            }
+                        },
+                        {
+                            name: "FAST HEAL",
+                            cost: 150,
+                            stack: 1,
+                            descriptionL1: "Significantly increase RTF repair speed.",
+                            descriptionL2: "",
+                            place: {
+                                shop: 'h'
+                            }
+                        },
+                    ];
+                }
+            }
+        });
+        connection.setOnMessage("Pong", () => {
+            this.ponged = true;
+        });
+        connection.setOnMessage("Tick", (counter, mode) => {
+            this.status.counter = counter;
+            this.ponged = true;
+            if (mode == 2) { // 0 = play, 1 = strat, 2 = waiting
+                this.status.wait = true;
+                if (!this.status.counting) {
+                    this.status.counting = true;
+                    notify("Countdown started: Game will begin in " + this.status.getTimeString());
+                }
+            }
+            else {
+                this.status.wait = false;
+                this.tick();
+                if (!this.status.playing) {
+                    this.status.playing = true;
+                    notify("Game has started!")
+                }
+            }
+            var oldStatus = this.status.moveShips;
+            this.status.moveShips = mode == 1;
+            if (this.status.moveShips && !oldStatus) {
+                this.enterMoveShips();
+            }
+            var curTime = window.performance.now();
+            if (this.status.lastTickTime == -1) {
+                this.status.lastTickTime = curTime - this.status.tickTime;
+            }
+            var gTickTime = curTime - this.status.lastTickTime;
+            const drag = 0.995;
+            this.status.tickTime = this.status.tickTime * drag + gTickTime * (1 - drag);
+            this.status.lastTickTime = curTime;
+        });
+        connection.setOnMessage("Delete", (id) => {
+            if (this.castle && id == this.castle.id) {
+                delete this.castle;
+                this.status.isRTF = false;
+                this.status.spectating = true;
+                this.mine = [];
+            }
+            if (DEBUG) {
+                this.deletePoints.push([this.objects[id].x, this.objects[id].y]);
+            }
+            var index = this.mine.indexOf(id);
+            if (index != -1) {
+                this.mine.splice(index, 1);
+            }
+            delete this.objects[id];
+        });
+        connection.setOnMessage("Add", (id) => {
+            this.mine.push(id);
+        });
+        connection.setOnMessage("BannerAdd", (banner, name) => {
+            this.banners[banner] = name;
+        });
+        connection.setOnMessage("Radiate", (id, amount) => {
+            this.objects[id].rStrength = amount;
+        });
+        connection.setOnMessage("Metadata", (gamesize) => {
+            this.gamesize = gamesize;
+            screen("gameui");
+            if (!BARE && this.fancyBackground) {
+                this.bgCall = prerenderBackground(this.gamesize); // Pre-draw the background image onto a hidden canvas
+            }
+            this._main();
+        });
+        connection.setOnMessage("SetScore", (score) => {
+            this.status.score = score;
+        });
+        connection.setOnMessage("MoveObjectFull", (id, x, y, a, w, h) => {
+            var obj = this.objects[id];
+            if (!obj) {
+                return;
+            }
+            obj.xOld = obj.x;
+            obj.yOld = obj.y;
+            obj.wOld = obj.w;
+            obj.hOld = obj.h;
+            obj.aOld = obj.a;
+            obj.x = x;
+            obj.y = y;
+            obj.a = a;
+            obj.w = w;
+            obj.h = h;
+            obj.didMove = true;
+        });
+        connection.setOnMessage("A2A", count => {
+            this.a2a = count;
+        });
+        connection.setOnMessage("YouAreTeamLeader", () => {
+            this.status.isTeamLeader = true;
+        });
+        connection.setOnMessage("Chat", (message, banner, priority) => {
+            //console.log("banner " + args[1] + " sent a message with priority " + args[2] + ": " + args[0]);
+            var chatEl = document.getElementById("chat-messages")
+            var messageEl = document.createElement("p");
+            messageEl.style.fontSize = 1 + priority * 0.2 + "em";
+            var bannerSpan = document.createElement("span");
+            bannerSpan.style.color = banner == 0 ? "magenta" : "red";
+            bannerSpan.innerText = priority == 1 ? "👑 " : "";
+            bannerSpan.innerText += banner == 0 ? "GOD" : this.banners[banner];
+            messageEl.appendChild(bannerSpan);
+            messageEl.appendChild(document.createTextNode(": " + message));
+            chatEl.appendChild(messageEl);
+            chatEl.scrollTo({
+                top: chatEl.scrollHeight
+            });
+            if (banner == 0) {
+                // GOD sent a message, we can't ignore it!
+                document.getElementById("chat").classList.remove("hidden");
+                console.log("GOT A MESSAGE FROM GOD!");
+                console.log("God says: " + message);
+            }
+        });
+        connection.setOnMessage("YouAreSpectating", () => {
+            this.status.spectating = true;
+        });
+        connection.setOnMessage("End", (banner) => {
+            if (this.castle.banner == banner) {
+                screen("youWin");
+            }
+            else {
+                document.getElementById("winnerBanner").innerText = this.banners[banner];
+                screen("gameOver");
+            }
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
+        });
+        connection.setOnMessage("UpgradeThing", (id, upgrade) => {
+            this.objects[id].upgrade(upgrade);
+        });
+        connection.setOnMessage("HealthUpdate", (id, health) => {
+            this.objects[id].health = health;
+        });
+        connection.setOnMessage("BannerAddToTeam", (banner, team) => {
+            this.teams[banner] = team;
+            console.log(this.banners[banner] + " is in " + this.banners[team]);
+        });
+        connection.setOnMessage("YouLose", () => {
+            screen("youLose");
+            setTimeout(() => {
+                screen("gameui");
+            }, 1000);
+        });
+    }
+
     attemptWall(x, y) {
         if (this.status.canPlaceObject && this.status.wallsRemaining > 0) {
             this.place("w");
@@ -1223,14 +1365,14 @@ class Game {
 
     start(formdata) {
         var isSpectating = formdata.get("spectator") == "on";
-        this.comms.connect(formdata.get("banner-name"), formdata.get("password-input"), formdata.get("playmode"), isSpectating);
+        this.doConnect(formdata.get("password-input"), formdata.get("banner-name"), formdata.get("playmode"), isSpectating);
         this.fancyBackground = formdata.get("fancybg") == "on";
+        this.minimalistic = formdata.get("minimalistic") == "on";
     }
     
     air2air() {
         if (this.seeking && this.a2a > 0) {
-            this.a2a--;
-            this.comms.air2air(this.seeking.id);
+            this.doA2A(this.seeking.id);
         }
     }
 
@@ -1249,238 +1391,24 @@ class Game {
     }
 
     onmessage(command, args) {
-        if (command == "m") {
-            this.gamesize = args[0] - 0;
-            screen("gameui");
-            if (!BARE && this.fancyBackground) {
-                this.bgCall = prerenderBackground(this.gamesize); // Pre-draw the background image onto a hidden canvas
-            }
-            this._main();
-        }
-        else if (command == "t") {
-            this.tick();
-            this.status.wait = false; // If it's receiving TICK commands it is not waiting
-            this.status.counter = args[0] - 0;
-            if (!this.status.playing) {
-                this.status.playing = true;
-                notify("Game has started!")
-            }
-        }
-        else if (command == "!") {
-            this.status.countdown = args[0] - 0;
-            this.status.wait = true;
-            if (!this.status.counting) {
-                this.status.counting = true;
-                notify("Countdown started: Game will begin in " + this.status.getTimeString());
-            }
-        }
-        else if (command == "?") {
-            this.status.isTeamLeader = true;
-        }
-        else if (command == "B") {
-            //console.log("banner " + args[1] + " sent a message with priority " + args[2] + ": " + args[0]);
-            var chatEl = document.getElementById("chat-messages")
-            var messageEl = document.createElement("p");
-            messageEl.style.fontSize = 1 + args[2] * 0.2 + "em";
-            var bannerSpan = document.createElement("span");
-            bannerSpan.style.color = args[1] == 0 ? "magenta" : "red";
-            bannerSpan.innerText = args[2] == 1 ? "👑 " : "";
-            bannerSpan.innerText += args[1] == 0 ? "GOD" : this.banners[args[1]];
-            messageEl.appendChild(bannerSpan);
-            messageEl.appendChild(document.createTextNode(": " + args[0]));
-            chatEl.appendChild(messageEl);
-            //chatEl.innerHTML += `<p style="font-size: ${1 + args[2] * 0.2}em;"><span style="color: ${args[1] == 0 ? 'magenta' : 'red'};">${args[2] == 1 ? "👑 " : ""}${args[1] == 0 ? "GOD" : this.banners[args[1]]}</span>: ${args[0]}</p>`;
-            chatEl.scrollTo({
-                top: chatEl.scrollHeight
-            });
-        }
-        else if (command == "s") {
-
-        }
-        else if (command == "S") {
-            this.status.score = args[0] - 0;
-        }
-        else if (command == "e") {
-            
-        }
-        else if (command == "r") {
-            this.objects[args[0]].rStrength = args[1] - 0;
-        }
-        else if (command == "d") {
-            if (this.castle && args[0] == this.castle.id) {
-                delete this.castle;
-                this.status.isRTF = false;
-                this.status.spectating = true;
-                this.mine = [];
-            }
-            if (DEBUG) {
-                this.deletePoints.push([this.objects[args[0]].x, this.objects[args[0]].y]);
-            }
-            var index = this.mine.indexOf(args[0]);
-            if (index != -1) {
-                this.mine.splice(index, 1);
-            }
-            delete this.objects[args[0]];
-        }
-        else if (command == "n") {
-            this.objects[args[1]] = new GameObject(this, args[2] - 0, args[3] - 0, args[7] - 0, args[8] - 0, args[4] - 0, args[0], args[5] == "1", args[1], args[6] - 0);
-            for (var i = 9; i < args.length; i++) {
-                this.objects[args[1]].upgrades.push(args[i]);
-            }
-            if ((args[0] == "c" || args[0] == "R") && this.mine.indexOf(args[1]) != -1) {
-                this.castle = this.objects[args[1]];
-                if (args[0] == "R") {
-                    this.status.isRTF = true;
-                    this.inventory = [
-                        {
-                            name: "FASTER GUN",
-                            cost: 30,
-                            stack: 1,
-                            descriptionL1: "Significantly decrease RTF main gun shot cooldown.",
-                            descriptionL2: "",
-                            place: {
-                                upgrade: {
-                                    effect: "castle",
-                                    cost: 30,
-                                    word: "b"
-                                }
-                            }
-                        },
-                        {
-                            name: "SNIPER",
-                            cost: 40,
-                            stack: 1,
-                            descriptionL1: "Make the RTF invisible on any scopes,",
-                            descriptionL2: "including local-area compass.",
-                            place: {
-                                upgrade: {
-                                    effect: "castle",
-                                    word: "s"
-                                }
-                            }
-                        },
-                        {
-                            name: "SPEEDSHIP",
-                            cost: 70,
-                            stack: 1,
-                            descriptionL1: "Significantly increase RTF flight speed.",
-                            descriptionL2: "",
-                            place: {
-                                upgrade: {
-                                    effect: "castle",
-                                    word: "f"
-                                }
-                            }
-                        },
-                        {
-                            name: "FAST HEAL",
-                            cost: 150,
-                            stack: 1,
-                            descriptionL1: "Significantly increase RTF repair speed.",
-                            descriptionL2: "",
-                            place: {
-                                upgrade: {
-                                    effect: "castle",
-                                    word: "h"
-                                }
-                            }
-                        },
-                    ];
-                }
-            }
-        }
-        else if (command == "A") { 
-            this.a2a++;
-        }
-        else if (command == "M") {
-            var obj = this.objects[args[0]];
-            if (!obj) {
-                return;
-            }
-            obj.xOld = obj.x;
-            obj.yOld = obj.y;
-            obj.wOld = obj.w;
-            obj.hOld = obj.h;
-            obj.aOld = obj.a;
-            this.ctx.fillStyle = "red";
-            this.ctx.fillRect(obj.x, obj.y, 50, 50);
-            obj.x = args[1] - 0;
-            obj.y = args[2] - 0;
-            if (args.length > 3) {
-                obj.a = args[3] - 0;
-            }
-            if (args.length > 4) {
-                obj.w = args[4] - 0;
-                obj.h = args[5] - 0;
-            }
-            obj.didMove = true;
-        }
-        else if (command == "w") {
-            if (args[0] == 0) {
-                this.status.spectating = true;
-            }
-        }
-        else if (command == "b") {
-            this.banners[args[0]] = args[1];
-            if (args.length > 2) {
-                this.teams[args[0]] = args[2];
-            }
-        }
-        else if (command == "a") {
-            this.mine.push(args[0]);
-        }
-        else if (command == "l") {
-            screen("youLose");
-            setTimeout(() => {
-                screen("gameui");
-            }, 3000);
-        }
-        else if (command == "E") {
-            if (this.castle.banner == args[0]) {
-                screen("youWin");
-            }
-            else {
-                document.getElementById("winnerBanner").innerText = this.banners[this.castle.banner];
-                screen("gameOver");
-            }
-            setTimeout(() => {
-                window.location.reload();
-            }, 3000);
-        }
-        else if (command == "u") {
-            this.objects[args[0]].upgrade(args[1]);
-        }
-        else {
-            console.warn("UNRECOGNIZED COMMAND " + command + "!");
-            console.log(args);
-        }
-        if (command == "t" || command == "!") {
-            var oldStatus = this.status.moveShips;
-            this.status.moveShips = args[1] == '1';
-            if (this.status.moveShips && !oldStatus) {
-                this.enterMoveShips();
-            }
-            var curTime = window.performance.now();
-            if (this.status.lastTickTime == -1) {
-                this.status.lastTickTime = curTime - this.status.tickTime;
-            }
-            var gTickTime = curTime - this.status.lastTickTime;
-            const drag = 0.995; // we officially no longer support autoadjusting times! it will always expect 1000/30. this should help the problem a bit.
-            this.status.tickTime = this.status.tickTime * drag + gTickTime * (1 - drag);
-            this.status.lastTickTime = curTime;
-            if (args[2]) {
-                this.health = args[2] - 0;
-            }
-        }
+        console.warn("UNRECOGNIZED COMMAND " + command);
+        console.log(args);
     }
 
     _main() {
-        this.status.online = this.comms.isOnline;
         this.interactionLoop();
         this.renderLoop();
         if (!this.harikari) {
             requestAnimationFrame(() => { this._main() });
         }
+    }
+
+    transformPoint(x, y) {
+        const matrix = this.ctx.getTransform();
+        return [
+            matrix.a * x + matrix.c * y + matrix.e,
+            matrix.b * x + matrix.d * y + matrix.f,
+        ];
     }
 
     renderGameboard(interpolator, zoomLevel) {
@@ -1535,7 +1463,7 @@ class Game {
         this.ctx.fillStyle = "#555555";
         this.ctx.font = "12px 'Chakra Petch'";
         this.ctx.textAlign = "left";
-        this.ctx.fillText("SYSTEM STATUS", 18, 9 + 15.6 / 2);
+        this.ctx.fillText("SYSTEM STATUS (" + Math.round(this.status.FPS) + " FPS)", 18, 9 + 15.6 / 2);
         this.ctx.textAlign = "right";
         this.ctx.fillText("SCORE", window.innerWidth - 18, 9 + 15.6 / 2);
         this.ctx.font = "16px 'Chakra Petch'";
@@ -1577,46 +1505,49 @@ class Game {
         this.ctx.fillRect(0, window.innerHeight - 56, window.innerWidth, 56);
         this.ctx.fillRect(0, 0, 9, window.innerHeight);
         this.ctx.fillRect(window.innerWidth - 56, 0, 56, window.innerHeight);
-        this.ctx.beginPath();
-        this.ctx.moveTo(window.innerWidth - 80, 56);
-        this.ctx.quadraticCurveTo(window.innerWidth - 56, 56, window.innerWidth - 56, 80);
-        this.ctx.lineTo(window.innerWidth - 56, 56);
-        this.ctx.fill();
-        this.ctx.moveTo(window.innerWidth - 80, window.innerHeight - 56);
-        this.ctx.quadraticCurveTo(window.innerWidth - 56, window.innerHeight - 56, window.innerWidth - 56, window.innerHeight - 80);
-        this.ctx.lineTo(window.innerWidth - 56, window.innerHeight - 56);
-        this.ctx.fill();
         this.drawStatus(interpolator);
-        var offsetX = (this.cX - window.innerWidth/2) % MARKER_SPACING;
-        var offsetY = (this.cY - window.innerHeight/2) % MARKER_SPACING;
-        this.ctx.strokeStyle = "white";
-        for (var i = 0; i < (window.innerWidth - 266 - 118) / MARKER_SPACING; i++) {
-            var m_x = Math.round(MARKER_START_X + i * MARKER_SPACING - offsetX);
+        if (!this.minimalistic) {
+            this.ctx.fillStyle = "black";
             this.ctx.beginPath();
-            this.ctx.lineWidth = 2;
-            this.ctx.moveTo(m_x, 32);
-            this.ctx.lineTo(m_x, 48);
-            this.ctx.stroke();
-            this.ctx.fillStyle = "#777";
-            this.ctx.font = "8px 'Chakra Petch'";
-            this.ctx.textAlign = "center";
-            var tX = MARKER_START_X + i * MARKER_SPACING - offsetX;
-            var pout = Math.round((tX - window.innerWidth/2 + this.cX)/MARKER_SPACING);
-            this.ctx.fillText(pout, tX + MARKER_SPACING / 2, 46);
-        }
-        for (var i = 0; i < (window.innerHeight - 118 - 112) / MARKER_SPACING; i++) {
-            var m_y = Math.round(MARKER_START_Y + i * MARKER_SPACING - offsetY);
-            this.ctx.beginPath();
-            this.ctx.lineWidth = 2;
-            this.ctx.moveTo(window.innerWidth - 32, m_y);
-            this.ctx.lineTo(window.innerWidth - 48, m_y);
-            this.ctx.stroke();
-            this.ctx.fillStyle = "#777";
-            this.ctx.font = "8px 'Chakra Petch'";
-            this.ctx.textAlign = "left";
-            var tY = MARKER_START_Y + i * MARKER_SPACING - offsetY;
-            var pout = Math.round((tY - window.innerHeight/2 + this.cY)/MARKER_SPACING);
-            this.ctx.fillText(pout, window.innerWidth - 46, tY + MARKER_SPACING / 2);
+            this.ctx.moveTo(window.innerWidth - 80, 56);
+            this.ctx.quadraticCurveTo(window.innerWidth - 56, 56, window.innerWidth - 56, 80);
+            this.ctx.lineTo(window.innerWidth - 56, 56);
+            this.ctx.fill();
+            this.ctx.moveTo(window.innerWidth - 80, window.innerHeight - 56);
+            this.ctx.quadraticCurveTo(window.innerWidth - 56, window.innerHeight - 56, window.innerWidth - 56, window.innerHeight - 80);
+            this.ctx.lineTo(window.innerWidth - 56, window.innerHeight - 56);
+            this.ctx.fill();
+            var offsetX = (this.cX - window.innerWidth/2) % MARKER_SPACING;
+            var offsetY = (this.cY - window.innerHeight/2) % MARKER_SPACING;
+            this.ctx.strokeStyle = "white";
+            for (var i = 0; i < (window.innerWidth - 266 - 118) / MARKER_SPACING; i++) {
+                var m_x = Math.round(MARKER_START_X + i * MARKER_SPACING - offsetX);
+                this.ctx.beginPath();
+                this.ctx.lineWidth = 2;
+                this.ctx.moveTo(m_x, 32);
+                this.ctx.lineTo(m_x, 48);
+                this.ctx.stroke();
+                this.ctx.fillStyle = "#777";
+                this.ctx.font = "8px 'Chakra Petch'";
+                this.ctx.textAlign = "center";
+                var tX = MARKER_START_X + i * MARKER_SPACING - offsetX;
+                var pout = Math.round((tX - window.innerWidth/2 + this.cX)/MARKER_SPACING);
+                this.ctx.fillText(pout, tX + MARKER_SPACING / 2, 46);
+            }
+            for (var i = 0; i < (window.innerHeight - 118 - 112) / MARKER_SPACING; i++) {
+                var m_y = Math.round(MARKER_START_Y + i * MARKER_SPACING - offsetY);
+                this.ctx.beginPath();
+                this.ctx.lineWidth = 2;
+                this.ctx.moveTo(window.innerWidth - 32, m_y);
+                this.ctx.lineTo(window.innerWidth - 48, m_y);
+                this.ctx.stroke();
+                this.ctx.fillStyle = "#777";
+                this.ctx.font = "8px 'Chakra Petch'";
+                this.ctx.textAlign = "left";
+                var tY = MARKER_START_Y + i * MARKER_SPACING - offsetY;
+                var pout = Math.round((tY - window.innerHeight/2 + this.cY)/MARKER_SPACING);
+                this.ctx.fillText(pout, window.innerWidth - 46, tY + MARKER_SPACING / 2);
+            }
         }
     }
 
@@ -1627,7 +1558,7 @@ class Game {
             interpolator = 1; // not 0, because then it'd be a frame behind at all times
         }
         if (interpolator > 1) { // if it's "glitching"
-            //interpolator = 1;
+            interpolator = 1;
         }
         if (this.status.isRTF && !this.status.moveShips && !this.status.wait) {
             this.cX = this.castle.getX(interpolator) * this.zoomLevel;
@@ -1689,6 +1620,9 @@ class Game {
     }
 
     interactionLoop() { // Is called as much as possible; handles interaction with the user
+        var cTime = window.performance.now();
+        this.status.FPS = 1000/(cTime - this.lastFrameTime);
+        this.lastFrameTime = cTime;
         this.doMouse();
         Object.values(this.objects).forEach((item) => {
             item.bodyHovered = (this.gameX > item.x         - 25 && this.gameX < item.x         + 25 && this.gameY > item.y         - 25 && this.gameY < item.y         + 25)
@@ -1743,7 +1677,7 @@ class Game {
 
     talk() { // Call every server tick; sends things to the server
         if (this.status.isRTF && !this.status.moveShips) {
-            this.comms.rtf(this.controls.up, this.controls.left, this.controls.right, this.controls.down, this.keysDown[" "]);
+            this.rtf(this.controls.up, this.controls.left, this.controls.right, this.controls.down, this.keysDown[" "]);
         }
     }
 
@@ -1780,7 +1714,7 @@ class Game {
     }
 
     place(type) {
-        this.comms.place(type, this.gameX, this.gameY);
+        this.doPlace(this.gameX, this.gameY, type.charCodeAt(0));
     }
 
     mouseUp() {
@@ -1845,103 +1779,105 @@ screen("gameui");
 
 var game = undefined;
 
-function play() {
+async function play() {
     randomizeBanner();
-    var started = false;
     screen("establishin");
     var ws_url = document.getElementById("server-url").value;
-    var socket = undefined;
-    try {
-        socket = new WebSocket(ws_url);
-    }
-    catch {
-        screen("failedToConnect");
-        setTimeout(() => {
-            screen("startscreen")
-        }, 1000);
-        return;
-    }
-    game = new Game(socket);
-    var form = new FormData(document.getElementById("startform"));
-    socket.onopen = () => {
-        started = true;
-        game.start(form);
-        document.getElementById("game").addEventListener("wheel", (evt) => {
-            game.scroll(evt.deltaX, evt.deltaY);
-            evt.preventDefault();
-            return false;
-        }, {passive:false});
-
-        document.getElementById("game").addEventListener("scroll", (evt) => {
-            evt.preventDefault();
-            return false;
-        });
-
-        window.addEventListener("mousemove", (evt) => {
-            game.mouse(evt.clientX, evt.clientY);
-        });
-
-        document.getElementById("game").addEventListener("mousedown", (evt) => {
-            game.mouseDown();
-        });
-
-        document.getElementById("game").addEventListener("mouseup", (evt) => {
-            game.mouseUp();
-        });
-
-        window.addEventListener("keydown", (evt) => {
-            if (game.mouseX > window.innerWidth - 400 && !document.getElementById("chat").classList.contains("hidden")) {
-                // TODO: use this for something or compress the statement into a single if.
-                // This trick of using an else instead of a not in anticipation of more code is
-                // something that has befuddled and annoyed people since my early robotics days.
-            }
-            else{
-                game.keysDown[evt.key] = true;
-                if (evt.key == "q") {
-                    game.attemptWall(game.mouseX, game.mouseY);
-                }
-                else if (evt.key == "T") {
-                    if (game.castle) { // you can't use the chat if you don't have a castle. this is also weak spectator discouragement, although it allows
-                        // some harmless trolling.
-                        document.getElementById("chat").classList.toggle("hidden");
-                        document.getElementById("chat-banner").innerText = game.banners[game.castle.banner];
-                    }
-                }
-            }
-        });
-
-        window.addEventListener("keyup", (evt) => {
-            if (game.mouseX > window.innerWidth - 400 && !document.getElementById("chat").classList.contains("hidden")) {
-                if (evt.key == "Enter") {
-                    game.comms.talk(document.getElementById("chat-input").value, "team");
-                    document.getElementById("chat-input").value = "";
-                }
-            }
-            else{
-                game.keysDown[evt.key] = false;
-                if (evt.key == "i") {
-                    game.sidebar.isInventory = !game.sidebar.isInventory;
-                }
-                if (evt.key == "e" && game.status.isRTF) {
-                    game.air2air();
-                }
-                if (evt.key == "r" && game.status.isRTF) {
-                    game.accurateRTF = !game.accurateRTF;
-                }
-            }
-        });
-    };
-    socket.onerror = () => {
+    var manifest_url = document.getElementById("manifest-url").value;
+    var started = false;
+    var disconnect = () => {
         if (!started) {
             screen("failedToConnect");
             setTimeout(() => {
                 screen("startscreen");
             }, 1000);
         }
+        else {
+            screen("disconnected");
+            setTimeout(() => {
+                window.location.reload(); // have to be aggressive; annoying event listeners will be stuck if we don't fully reload here.
+            }, 1000);
+        }
     };
-    socket.onclose = () => {
-        game.connectionClosed();
-    };
+    try {
+        var connection = await protocolv3.connect(protocolv3.defaultConfig, ws_url, manifest_url, disconnect);
+        connection.onOpen(() => {
+            started = true;
+            connection.sendHandle("SelfTest")(true, 100, 500, 892658726, -80000, 32.6416, "[EXPECT true, 100, 500, 892658726, -80000, 32.6416]");
+            game = new Game(connection);
+            var form = new FormData(document.getElementById("startform"));
+            game.start(form);
+            document.getElementById("game").addEventListener("wheel", (evt) => {
+                game.scroll(evt.deltaX, evt.deltaY);
+                evt.preventDefault();
+                return false;
+            }, {passive:false});
+
+            document.getElementById("game").addEventListener("scroll", (evt) => {
+                evt.preventDefault();
+                return false;
+            });
+
+            window.addEventListener("mousemove", (evt) => {
+                game.mouse(evt.clientX, evt.clientY);
+            });
+
+            document.getElementById("game").addEventListener("mousedown", (evt) => {
+                game.mouseDown();
+            });
+
+            document.getElementById("game").addEventListener("mouseup", (evt) => {
+                game.mouseUp();
+            });
+
+            window.addEventListener("keydown", (evt) => {
+                if (game.mouseX > window.innerWidth - 400 && !document.getElementById("chat").classList.contains("hidden")) {
+                    // TODO: use this for something or compress the statement into a single if.
+                    // This trick of using an else instead of a not in anticipation of more code is
+                    // something that has befuddled and annoyed people since my early robotics days.
+                }
+                else{
+                    game.keysDown[evt.key] = true;
+                    if (evt.key == "q") {
+                        game.attemptWall(game.mouseX, game.mouseY);
+                    }
+                    else if (evt.key == "T") {
+                        if (game.castle) { // you can't use the chat if you don't have a castle. this is also weak spectator discouragement, although it allows
+                            // some harmless trolling.
+                            document.getElementById("chat").classList.toggle("hidden");
+                            document.getElementById("chat-banner").innerText = game.banners[game.castle.banner];
+                        }
+                    }
+                }
+            });
+
+            window.addEventListener("keyup", (evt) => {
+                if (game.mouseX > window.innerWidth - 400 && !document.getElementById("chat").classList.contains("hidden")) {
+                    if (evt.key == "Enter") {
+                        var chatdata = document.getElementById("chat-input").value;
+                        game.chat(chatdata, chatdata[0] == "!");
+                        document.getElementById("chat-input").value = "";
+                    }
+                }
+                else{
+                    game.keysDown[evt.key] = false;
+                    if (evt.key == "i") {
+                        game.sidebar.isInventory = !game.sidebar.isInventory;
+                    }
+                    if (evt.key == "e" && game.status.isRTF) {
+                        game.air2air();
+                    }
+                    if (evt.key == "r" && game.status.isRTF) {
+                        game.accurateRTF = !game.accurateRTF;
+                    }
+                }
+            });
+        });
+    }
+    catch (e) {
+        disconnect();
+        console.log(e);
+    }
 }
 
 function resizah() {

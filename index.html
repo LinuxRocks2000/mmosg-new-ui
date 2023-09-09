@@ -30,6 +30,7 @@
                 <form action="" id="startform" onsubmit="setTimeout(play, 0); return false;">
                     <h2>Server</h2>
                     <input type="text" name="server-url" id="server-url" placeholder="Server URL" />
+                    <input type="text" name="manifest-url" id="manifest-url" placeholder="Manifest URL" value="https://swaous.asuscomm.com/mmosg/manifest.json" />
                     <h2>Spectator Mode</h2>
                     <input type="checkbox" name="spectator" id="spectator" onchange="updateForm()">
                     Spectating? <label for="spectator" id="speclabel" class="fancycheck"></label>
@@ -47,7 +48,10 @@
                     <h2>Performance Controls</h2>
                     <input type="checkbox" name="fancybg" id="fancybg" onchange="updateForm()" checked>
                     Fancy background? <label for="fancybg" class="fancycheck"></label><br>
-                    <small>(Disabling this may improve performance on some browsers and systems)</small>
+                    <small>(Disabling this may improve performance on some browsers and systems)</small><br>
+                    <input type="checkbox" name="minimalistic" id="minimalistic" onchange="updateForm()">
+                    Minimalistic View<label for="minimalistic" class="fancycheck"></label><br>
+                    <small>(For true potato computers)</small>
                     <button type="submit">Start</button>
                 </form>
             </div>
@@ -68,12 +72,12 @@
                     Most MMOSG servers come with a built-in UI, but as this is an external modified UI, you have to specify a server.
                     You can manually type a url for it in the sidebar, or select one of of the <b>Famous Servers</b>:
                     <ul id="famous">
-                        <li onclick="set('wss://swaous.asuscomm.com/mmosg/game/io')">The 24/7 IO Server - swaous.asuscomm.com</li>
-                        <li onclick="set('wss://swaous.asuscomm.com/mmosg/game/regular')">The 24/7 Regular Server - swaous.asuscomm.com</li>
-                        <li onclick="set('wss://swaous.asuscomm.com/mmosg/game/big')">The 24/7 BIIIG IO Server - swaous.asuscomm.com</li>
-                        <li onclick="set('wss://swaous.asuscomm.com/mmosg/game/richard')">richard map <img style="margin: 0;" src="https://cdn.discordapp.com/emojis/1099462812645986324.webp?size=16&quality=lossless" /></li>
-                        <li onclick="set('wss://swaous.asuscomm.com/awesome/game')">Development build; not always running (and sometimes containing non-MMOSG applications) - swaous.asuscomm.com.</li>
-                        <li onclick="set('ws://localhost:3000/game')">Local Development, if you're doin' some coding</li>
+                        <li onclick="set('wss://swaous.asuscomm.com/mmosg/game/io', 'https://swaous.asuscomm.com/mmosg/manifest.json')">The 24/7 IO Server - swaous.asuscomm.com</li>
+                        <li onclick="set('wss://swaous.asuscomm.com/mmosg/game/regular', 'https://swaous.asuscomm.com/mmosg/manifest.json')">The 24/7 Regular Server - swaous.asuscomm.com</li>
+                        <li onclick="set('wss://swaous.asuscomm.com/mmosg/game/big', 'https://swaous.asuscomm.com/mmosg/manifest.json')">The 24/7 BIIIG IO Server - swaous.asuscomm.com</li>
+                        <li onclick="set('wss://swaous.asuscomm.com/mmosg/game/richard', 'https://swaous.asuscomm.com/mmosg/manifest.json')">richard map <img style="margin: 0;" src="https://cdn.discordapp.com/emojis/1099462812645986324.webp?size=16&amp;quality=lossless"></li>
+                        <li onclick="set('wss://swaous.asuscomm.com/awesome/game', 'https://swaous.asuscomm.com/mmosg/manifest.json')">Development build; not always running (and sometimes containing non-MMOSG applications) - swaous.asuscomm.com.</li>                 
+                        <li onclick="set('ws://localhost:3000', 'http://localhost:3000/manifest')">Local Development</li>
                     </ul>
                 </div>
                 <p>
@@ -110,6 +114,11 @@
                 Connection failed.
             </div>
         </div>
+        <div id="disconnected" class="textview">
+            <div>
+                You have been disconnected.
+            </div>
+        </div>
         <div id="youLose" class="textview">
             <div>
                 You have died.
@@ -131,8 +140,11 @@
             <small><a href="javascript:screen('startscreen')">click here</a> to exit without making a decision.</small></small>
         </div>
         <script>
-            function set(url) {
+            function set(url, mURL) {
                 document.getElementById("server-url").value = url;
+                if (mURL) {
+                    document.getElementById("manifest-url").value = mURL;
+                }
             }
             function updateForm() {
                 if (document.getElementById("spectator").checked) {
@@ -167,6 +179,7 @@
         <!-- scripts -->
         <script src="vector.js"></script>
         <script src="metaballs-gl.js"></script>
+        <script src="protocol.js"></script>
         <script src="mod.js"></script>
     </body>
 </html>
