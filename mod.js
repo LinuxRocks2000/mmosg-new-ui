@@ -412,14 +412,16 @@ class Sidebar {
             ctx.font = "14px 'Chakra Petch'";
             ctx.fillStyle = "#CCC";
             ctx.fillText("UPGRADES", 18, 448 + 14);
-            this.drawUpgradeBar(ctx, "A", "Reload", 1, parent.castle.upgrades.indexOf("b") == -1 ? 0 : 1, 505, parent.minimalistic);
-            this.drawUpgradeBar(ctx, "B", "Cloaking", 0.7, 0.5, 539, parent.minimalistic);
-            this.drawUpgradeBar(ctx, "C", "Speed", 0.8, 0.1, 573, parent.minimalistic);
-            this.drawUpgradeBar(ctx, "D", "Healing", 0.3, 0.2, 607, parent.minimalistic);
+            this.upgradeHovered = undefined;
+            this.drawUpgradeBar(parent, "g", "GUN", (parent.castle.highestUpgradeTier('b') + 1)/3, parent.castle.highestUpgradeTier('b')/3, 505, parent.minimalistic);
+            this.drawUpgradeBar(parent, "s", "CLOAKING", 1, parent.castle.upgrades.indexOf("s") == -1 ? 0 : 1, 539, parent.minimalistic);
+            this.drawUpgradeBar(parent, "f", "DRIVE", (parent.castle.highestUpgradeTier('f') + 1)/3, parent.castle.highestUpgradeTier('f')/3, 573, parent.minimalistic);
+            this.drawUpgradeBar(parent, "h", "HEALTH", (parent.castle.highestUpgradeTier('h') + 1)/4, parent.castle.highestUpgradeTier('h')/4, 607, parent.minimalistic);
         }
     }
 
-    drawUpgradeBar(ctx, lItem, label, projected, current, rootY, minimal) {
+    drawUpgradeBar(parent, lItem, label, projected, current, rootY, minimal) {
+        var ctx = parent.ctx;
         ctx.font = "12px 'Chakra Petch'";
         ctx.textAlign = "left";
         var tWid = ctx.measureText(label).width;
@@ -453,6 +455,11 @@ class Sidebar {
             ctx.lineWidth = 0.3;
             ctx.stroke();
             ctx.restore();
+        }
+        if (current < 1) {
+            if (parent.mouseX > 69 && parent.mouseX < 69 + 162 && parent.mouseY + parent.sideScroll > rootY && parent.mouseY + parent.sideScroll < rootY + 16) {
+                this.upgradeHovered = lItem;
+            }
         }
     }
 
@@ -548,6 +555,18 @@ class Sidebar {
                 item.selected = false;
             }
         });
+        if (this.upgradeHovered) {
+            const prices = {
+                "g": 30,
+                "s": 40,
+                "f": 70,
+                "h": 150
+            };
+            if (parent.status.score >= prices[this.upgradeHovered]) {
+                parent.shop(this.upgradeHovered);
+                parent.score -= prices[this.upgradeHovered]; // this is not authoritative, but should be accurate, so accidental doubleclicks won't end up in disconnection (because cost message lag)
+            }
+        }
     }
 }
 
@@ -586,6 +605,21 @@ class GameObject {
         this.editState = 0; // 0 = none; 1 = picked up, moving; 2 = picked up, setting angle
         this.didMove = true; // whether or not it's moved since last tick
         this.parent = parent;
+    }
+
+    highestUpgradeTier(upgrade) {
+        var highestTier = 0;
+        this.upgrades.forEach(item => {
+            if (item.startsWith(upgrade)) {
+                if (highestTier == 0) {
+                    highestTier = 1;
+                }
+                if (item[item.length - 1] > highestTier) {
+                    highestTier = item[item.length - 1];
+                }
+            }
+        });
+        return highestTier;
     }
 
     getTypeString() {
@@ -1191,6 +1225,15 @@ class Game {
                             descriptionL2: "",
                             place: {
                                 shop: 'f'
+                            }
+                        },
+                        {
+                            name: "AIR TO AIR MISSILE",
+                            cost: 100,
+                            descriptionL1: "",
+                            descriptionL2: "",
+                            place: {
+                                shop: 'a'
                             }
                         },
                         {
