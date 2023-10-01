@@ -414,7 +414,7 @@ class Sidebar {
             ctx.fillText("UPGRADES", 18, 448 + 14);
             this.upgradeHovered = undefined;
             this.drawUpgradeBar(parent, "g", "GUN", (parent.castle.highestUpgradeTier('b') + 1)/3, parent.castle.highestUpgradeTier('b')/3, 505, parent.minimalistic);
-            this.drawUpgradeBar(parent, "s", "CLOAKING", 1, parent.castle.upgrades.indexOf("s") == -1 ? 0 : 1, 539, parent.minimalistic);
+            this.drawUpgradeBar(parent, "s", "CLOAKING", (parent.castle.highestUpgradeTier('s') + 1)/2, (parent.castle.highestUpgradeTier('s'))/2, 539, parent.minimalistic);
             this.drawUpgradeBar(parent, "f", "DRIVE", (parent.castle.highestUpgradeTier('f') + 1)/3, parent.castle.highestUpgradeTier('f')/3, 573, parent.minimalistic);
             this.drawUpgradeBar(parent, "h", "HEALTH", (parent.castle.highestUpgradeTier('h') + 1)/4, parent.castle.highestUpgradeTier('h')/4, 607, parent.minimalistic);
         }
@@ -709,6 +709,13 @@ class GameObject {
         var a = this.getA(interpolator);
         var x = this.getX(interpolator);
         var y = this.getY(interpolator);
+        if (this.upgrades.indexOf("s2") != -1) {
+            if (Math.abs(this.x - this.xOld) < 0.5 && Math.abs(this.y - this.yOld) < 0.5) {
+                if (!this.isOurs && !master.status.moveShips) {
+                    return;
+                }
+            }
+        }
         ctx.translate(x, y);
         ctx.rotate(a);
         if (this.type == "R") {
@@ -1198,36 +1205,6 @@ class Game {
                     this.status.isRTF = true;
                     this.inventory = [
                         {
-                            name: "FASTER GUN",
-                            cost: 30,
-                            stack: 1,
-                            descriptionL1: "Significantly decrease RTF main gun shot cooldown.",
-                            descriptionL2: "",
-                            place: {
-                                shop: 'g'
-                            }
-                        },
-                        {
-                            name: "SNIPER",
-                            cost: 40,
-                            stack: 1,
-                            descriptionL1: "Make the RTF invisible on any scopes,",
-                            descriptionL2: "including local-area compass.",
-                            place: {
-                                shop: 's'
-                            }
-                        },
-                        {
-                            name: "SPEEDSHIP",
-                            cost: 70,
-                            stack: 1,
-                            descriptionL1: "Significantly increase RTF flight speed.",
-                            descriptionL2: "",
-                            place: {
-                                shop: 'f'
-                            }
-                        },
-                        {
                             name: "AIR TO AIR MISSILE",
                             cost: 100,
                             descriptionL1: "",
@@ -1235,17 +1212,7 @@ class Game {
                             place: {
                                 shop: 'a'
                             }
-                        },
-                        {
-                            name: "FAST HEAL",
-                            cost: 150,
-                            stack: 1,
-                            descriptionL1: "Significantly increase RTF repair speed.",
-                            descriptionL2: "",
-                            place: {
-                                shop: 'h'
-                            }
-                        },
+                        }
                     ];
                 }
             }
@@ -1601,7 +1568,7 @@ class Game {
             interpolator = 1; // not 0, because then it'd be a frame behind at all times
         }
         if (interpolator > 1) { // if it's "glitching"
-            interpolator = 1;
+            //interpolator = 1;
         }
         if (this.status.isRTF && !this.status.moveShips && !this.status.wait) {
             this.cX = this.castle.getX(interpolator) * this.zoomLevel;
