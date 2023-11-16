@@ -146,6 +146,7 @@ input:checked + .fancycheck {
     height: 25px;
     float: right;
     position: relative;
+    transition: background-color 0.3s;
 }
 
 .fancycheck::after {

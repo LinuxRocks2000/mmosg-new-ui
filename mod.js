@@ -21,6 +21,26 @@ function mulberry32(a) {
     }
 }
 
+function coterminal(thing, about = Math.PI * 2) {
+    while (thing > about) {
+        thing -= about;
+    }
+    while (thing < 0) {
+        thing += about;
+    }
+    return thing;
+}
+
+function ringDist(p1, p2, circumference = Math.PI * 2) {
+    p1 = coterminal(p1, circumference);
+    p2 = coterminal(p2, circumference);
+    var dist = p2 - p1;
+    if (Math.abs(dist) > circumference/2) {
+        dist = (circumference - Math.abs(dist)) * (dist < 0 ? 1 : -1);
+    }
+    return dist;
+}
+
 function randomizeBanner() {
     var banner = document.getElementById("banner");
     if (banner.value == "") {
@@ -605,6 +625,8 @@ class GameObject {
         this.editState = 0; // 0 = none; 1 = picked up, moving; 2 = picked up, setting angle
         this.didMove = true; // whether or not it's moved since last tick
         this.parent = parent;
+        this.mouseIsDown = false;
+        this.rightMouse = false;
     }
 
     highestUpgradeTier(upgrade) {
@@ -1090,7 +1112,8 @@ class Game {
             up: false,
             left: false,
             down: false,
-            right: false
+            right: false,
+            shoot: false
         };
         this.inventory = [
             {
@@ -1378,6 +1401,7 @@ class Game {
         this.doConnect(formdata.get("password-input"), formdata.get("banner-name"), formdata.get("playmode"), isSpectating);
         this.fancyBackground = formdata.get("fancybg") == "on";
         this.minimalistic = formdata.get("minimalistic") == "on";
+        this.mousemodeRTF = formdata.get("mousertf") == "on";
     }
     
     air2air() {
@@ -1448,6 +1472,27 @@ class Game {
                 this.ctx.arc(item[0], item[1], 5, 0, Math.PI * 2);
                 this.ctx.fill();
             });
+            if (this.status.isRTF) {
+                var dx = this.gameX - this.castle.x;
+                var dy = this.gameY - this.castle.y;
+                var mAngle = Math.atan2(dy, dx);
+                var da = ringDist(mAngle, this.castle.a - Math.PI/2);
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = "orange";
+                this.ctx.moveTo(this.castle.x, this.castle.y);
+                this.ctx.lineTo(this.castle.x + Math.cos(this.castle.a) * 100, this.castle.y + Math.sin(this.castle.a) * 100);
+                this.ctx.stroke();
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = "red";
+                this.ctx.moveTo(this.castle.x, this.castle.y);
+                this.ctx.lineTo(this.castle.x + Math.cos(mAngle) * 100, this.castle.y + Math.sin(mAngle) * 100);
+                this.ctx.stroke();
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = "blue";
+                this.ctx.arc(this.castle.x, this.castle.y, 50, mAngle, mAngle + da);
+                this.ctx.stroke();
+            }
         }
         this.ctx.fillStyle = "black";
         this.ctx.fillRect(this.gameX - 5, this.gameY - 5, 10, 10);
@@ -1663,6 +1708,34 @@ class Game {
         this.controls.down = this.keysDown["ArrowDown"] || this.keysDown["s"];
         this.controls.left = this.keysDown["ArrowLeft"] || this.keysDown["a"];
         this.controls.right = this.keysDown["ArrowRight"] || this.keysDown["d"];
+        this.controls.shoot = this.keysDown["f"] ||  this.keysDown[" "];
+        if (this.mousemodeRTF && this.status.isRTF) {
+            if (this.mouseIsDown) {
+                var dx = this.gameX - this.castle.x;
+                var dy = this.gameY - this.castle.y;
+                var mAngle = Math.atan2(dy, dx);
+                var dist = Math.sqrt(dy * dy + dx * dx);
+                var da = ringDist(mAngle, this.castle.a - Math.PI/2);
+                if (dist < 20) { // hard brake
+                    this.controls.down = true;
+                }
+                else {
+                    if (dist < 100) { // precision turn
+                        this.controls.down = true;
+                    }
+                    if (da < -Math.PI/8) {
+                        this.controls.right = true;
+                    }
+                    if (da > Math.PI/8) {
+                        this.controls.left = true;
+                    }
+                    if (dist > 200) {
+                        this.controls.up = true;
+                    }
+                }
+            }
+            this.controls.shoot = this.rightMouse;
+        }
         if (!this.status.isRTF || this.status.moveShips) {
             if (this.controls.up) {
                 this.cY -= 40;
@@ -1687,7 +1760,7 @@ class Game {
 
     talk() { // Call every server tick; sends things to the server
         if (this.status.isRTF && !this.status.moveShips) {
-            this.rtf(this.controls.up, this.controls.left, this.controls.right, this.controls.down, this.keysDown[" "]);
+            this.rtf(this.controls.up, this.controls.left, this.controls.right, this.controls.down, this.controls.shoot);
         }
     }
 
@@ -1703,6 +1776,11 @@ class Game {
     }
 
     scroll(dx, dy) {
+        if (this.keysDown["Shift"]) {
+            var cache = dy;
+            dy = dx;
+            dx = cache;
+        }
         if (this.mouseX < 266) {
             this.sideScroll += dy + dx;
         }
@@ -1720,7 +1798,15 @@ class Game {
     }
 
     mouseDown() {
-        
+        this.mouseIsDown = true;
+    }
+
+    rightMouseDown() {
+        this.rightMouse = true;
+    }
+
+    rightMouseUp() {
+        this.rightMouse = false;
     }
 
     place(type) {
@@ -1728,6 +1814,7 @@ class Game {
     }
 
     mouseUp() {
+        this.mouseIsDown = false;
         if (this.mouseX < 266) { // It's in the sidebar
             this.sidebar.clickies(this);
         }
@@ -1833,11 +1920,22 @@ async function play() {
             });
 
             document.getElementById("game").addEventListener("mousedown", (evt) => {
-                game.mouseDown();
+                if (evt.button == 0) {
+                    game.mouseDown();
+                }
+                else {
+                    game.rightMouseDown();
+                }
+                console.log(evt);
             });
 
             document.getElementById("game").addEventListener("mouseup", (evt) => {
-                game.mouseUp();
+                if (evt.button == 0) {
+                    game.mouseUp();
+                }
+                else {
+                    game.rightMouseUp();
+                }
             });
 
             window.addEventListener("keydown", (evt) => {

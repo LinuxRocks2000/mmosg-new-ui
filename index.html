@@ -8,7 +8,7 @@
         <link rel="stylesheet" href="mod.css">
         <title>Alternative Client for MMOSG</title>
     </head>
-    <body>
+    <body onmousedown = "return false;" oncontextmenu="return false;">
         <div id="gameui">
             <canvas id="background" style="display: none;"></canvas>
             <canvas id="game">
@@ -39,19 +39,22 @@
                     <h2 class="hide_when_spectating">Password</h2>
                     <input class="hide_when_spectating" type="text" name="password-input" id="password" placeholder="Empty unless otherwise stated"/>
                     <h2 class="hide_when_spectating">Play Mode</h2>
-                    <input type="radio" name="playmode" id="normal" class="playmode" value="normal" checked>
+                    <input type="radio" name="playmode" id="normal" class="playmode" value="normal" checked onchange="updateForm()">
                     <label class="hide_when_spectating" for="normal">Normal (Strategic; x4 fighters, 100c)</label>
-                    <input type="radio" name="playmode" id="rtf" class="playmode" value="rtf">
+                    <input type="radio" name="playmode" id="rtf" class="playmode" value="rtf" onchange="updateForm()">
                     <label class="hide_when_spectating" for="rtf">RTF (Real Time Fighter; x2 fighters, 0c)</label>
-                    <input type="radio" name="playmode" id="defender" class="playmode" value="defender">
+                    <input type="radio" name="playmode" id="defender" class="playmode" value="defender" onchange="updateForm()">
                     <label class="hide_when_spectating" for="defender">Defensive (Strategic; x2 fighters, x2 turrets, 25c)</label>
-                    <h2>Performance Controls</h2>
+                    <h2>Performance and Controls</h2>
                     <input type="checkbox" name="fancybg" id="fancybg" onchange="updateForm()" checked>
                     Fancy background? <label for="fancybg" class="fancycheck"></label><br>
                     <small>(Disabling this may improve performance on some browsers and systems)</small><br>
                     <input type="checkbox" name="minimalistic" id="minimalistic" onchange="updateForm()">
-                    Minimalistic View<label for="minimalistic" class="fancycheck"></label><br>
-                    <small>(For true potato computers)</small>
+                    Minimalistic View<label for="minimalistic" class="fancycheck"></label>
+                    <small>(For true potato computers)</small><br>
+                    <div id="mousertf-outer">
+                    <input type="checkbox" name="mousertf" id="mousertf" onchange="updateForm()">
+                    Mouse-mode RTF<label for="mousertf" class="fancycheck"></label></div>
                     <button type="submit">Start</button>
                 </form>
             </div>
@@ -157,6 +160,7 @@
                         el.style.display = "";
                     });
                 }
+                document.getElementById("mousertf-outer").style.display = document.getElementById("rtf").checked ? "" : "none";
             }
             updateForm();
         </script>
