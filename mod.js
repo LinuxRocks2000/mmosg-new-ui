@@ -1402,6 +1402,9 @@ class Game {
         this.fancyBackground = formdata.get("fancybg") == "on";
         this.minimalistic = formdata.get("minimalistic") == "on";
         this.mousemodeRTF = formdata.get("mousertf") == "on";
+        if (formdata.get("crtCheckbox") == "on") {
+            this.crt = prepCRT();
+        }
     }
     
     air2air() {
@@ -1622,6 +1625,10 @@ class Game {
         this.ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
         this.renderGameboard(interpolator, this.zoomLevel);
         this.renderUI(interpolator);
+        if (this.crt) {
+            this.crt();
+            this.ctx.drawImage(document.getElementById("crt"), 0, 0);
+        }
     }
 
     mouseFieldCheckOnOne(size, obj) {
@@ -2061,4 +2068,125 @@ function allowNotifs() {
     Notification.requestPermission().then(() => {
         screen("startscreen");
     });
+}
+
+function prepCRT() {
+    var canvas = document.getElementById("crt");
+    var gl = canvas.getContext("webgl");
+    if (diva) {
+        canvas.width = divaW;
+        canvas.height = divaH;
+    }
+    function compileShader(shaderSource, shaderType) {
+        var shader = gl.createShader(shaderType);
+        gl.shaderSource(shader, shaderSource);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            alert("YOUR MOM IS A POOP POOP");
+        }
+        return shader;
+    }
+    function getAttribLocation(program, name) {
+        var attributeLocation = gl.getAttribLocation(program, name);
+        if (attributeLocation === -1) {
+            throw 'Can not find attribute ' + name + '.';
+        }
+        return attributeLocation;
+    }
+    function getUniformLocation(program, name) {
+        var uniformLocation = gl.getUniformLocation(program, name);
+        if (uniformLocation === -1) {
+            throw 'Can not find uniform ' + name + '.';
+        }
+        return uniformLocation;
+    }
+    var vertex = compileShader(`
+    attribute vec2 position;
+    void main() {
+        gl_Position = vec4(position, 0.0, 1.0);
+    }`, gl.VERTEX_SHADER);
+
+    var fragment = compileShader(`
+    precision highp float;
+    uniform sampler2D samplah;
+    uniform vec2 dims;
+
+    vec2 curveRemapUV(vec2 uv) {
+        vec2 curvature = vec2(4.0, 4.0);
+        uv = uv * 2.0 - 1.0;
+        vec2 offset = abs(uv.yx) / vec2(curvature.x, curvature.y);
+        uv = uv + uv * offset * offset;
+        uv = uv * 0.5 + 0.5;
+        return uv;
+    }
+
+    vec4 scanLine(float uv, float resolution, float opacity) {
+        float PI = 3.141592;
+        float intensity = sin(uv * resolution + PI * 2.0);
+        intensity = ((0.5 * intensity) + 0.5) * 0.9 + 0.1;
+        return vec4(vec3(pow(intensity, opacity)), 1.0);
+    }
+
+    void main() {
+        vec2 scanLineOpacity = vec2(0.1, 0.1);
+        vec2 map = vec2(gl_FragCoord.x / dims.x, 1.0 - gl_FragCoord.y / dims.y);
+        map = curveRemapUV(map);
+        vec4 baseColor = texture2D(samplah, map);
+        baseColor *= scanLine(map.x, dims.y, scanLineOpacity.x);
+        baseColor *= scanLine(map.y, dims.x, scanLineOpacity.y);
+        float dX = (map.x - 0.5) * 2.0;
+        float dY = (map.y - 0.5) * 2.0;
+        float d = sqrt(dX * dX + dY * dY);
+        d = pow(d, 5.0) * 0.2;
+        baseColor *= 1.0 - d;
+        baseColor.w = 1.0;
+        gl_FragColor = baseColor;
+    }
+    `, gl.FRAGMENT_SHADER);
+
+    var program = gl.createProgram();
+    gl.attachShader(program, vertex);
+    gl.attachShader(program, fragment);
+    gl.linkProgram(program);
+    gl.useProgram(program);
+    var plane = new Float32Array([
+        -1.0, 1.0,
+        -1.0, -1.0,
+        1.0, 1.0,
+        1.0, -1.0
+    ]);
+    var planeBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, planeBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, plane, gl.STATIC_DRAW);
+    var positionHandle = getAttribLocation(program, 'position');
+    gl.enableVertexAttribArray(positionHandle);
+    gl.vertexAttribPointer(positionHandle, 2, gl.FLOAT, gl.FALSE, 2 * 4, 0);
+
+    var dimsHandle = getUniformLocation(program, "dims");
+    var dims = new Float32Array([window.innerWidth, window.innerHeight]);
+    gl.uniform2fv(dimsHandle, dims);
+
+    window.addEventListener("resize", () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        dims[0] = window.innerWidth;
+        dims[1] = window.innerHeight;
+        gl.uniform2fv(dimsHandle, dims);
+    });
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    var sampler = getUniformLocation(program, "samplah");
+    var texture = gl.createTexture();
+
+    return () => {
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, document.getElementById("game"));
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.uniform1i(sampler, 0);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    };
 }

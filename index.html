@@ -8,12 +8,13 @@
         <link rel="stylesheet" href="mod.css">
         <title>Alternative Client for MMOSG</title>
     </head>
-    <body onmousedown = "return false;" oncontextmenu="return false;">
+    <body oncontextmenu="return false;">
         <div id="gameui">
             <canvas id="background" style="display: none;"></canvas>
             <canvas id="game">
                 Use a real browser to play this game, dammit
             </canvas>
+            <canvas id="crt" class="hidden"></canvas> <!-- NOTE: this is not properly optimized. Needs reworkin'. -->
             <div id="chat" class="hidden">
                 <div id="chat-messages">
                     <h1>MMOSG Chatroom</h1>
@@ -55,6 +56,8 @@
                     <div id="mousertf-outer">
                     <input type="checkbox" name="mousertf" id="mousertf" onchange="updateForm()">
                     Mouse-mode RTF<label for="mousertf" class="fancycheck"></label></div>
+                    <input type="checkbox" name="crtCheckbox" id="crtCheckbox" onchange="updateForm()">
+                    CRT Screen Effect (Experimental!)<label for="crtCheckbox" class="fancycheck"></label><br>
                     <button type="submit">Start</button>
                 </form>
             </div>
