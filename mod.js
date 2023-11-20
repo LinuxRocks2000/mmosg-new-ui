@@ -1042,8 +1042,9 @@ class Game {
             this.translate(-x, -y);
         };
         if (this.ctx.roundRect == undefined) { // Polyfill: roundRect doesn't have very good browser support (it's quite new: Chrome released support just last year and Firefox this year), so this is necessary. Keep your browsers up to date, dammit!
-            this.ctx.roundRect = function (x, y, width, height, radii) {
-                this.ctx.makeRoundRect(x, y, width, height, radii, radii);
+            var ctx = this.ctx;
+            ctx.roundRect = function (x, y, width, height, radii) {
+                ctx.makeRoundRect(x, y, width, height, radii, radii);
             };
         }
         this.status = {
