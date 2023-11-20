@@ -160,3 +160,5 @@ function prerenderBackground(size) {
         return main;
     }
 }
+
+// TODO: Move metaballs to Better WGL (which is wgl2, among other benefits).

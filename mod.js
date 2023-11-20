@@ -2071,48 +2071,27 @@ function allowNotifs() {
 }
 
 function prepCRT() {
-    var canvas = document.getElementById("crt");
-    var gl = canvas.getContext("webgl");
-    if (diva) {
-        canvas.width = divaW;
-        canvas.height = divaH;
-    }
-    function compileShader(shaderSource, shaderType) {
-        var shader = gl.createShader(shaderType);
-        gl.shaderSource(shader, shaderSource);
-        gl.compileShader(shader);
-        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-            alert("YOUR MOM IS A POOP POOP");
-        }
-        return shader;
-    }
-    function getAttribLocation(program, name) {
-        var attributeLocation = gl.getAttribLocation(program, name);
-        if (attributeLocation === -1) {
-            throw 'Can not find attribute ' + name + '.';
-        }
-        return attributeLocation;
-    }
-    function getUniformLocation(program, name) {
-        var uniformLocation = gl.getUniformLocation(program, name);
-        if (uniformLocation === -1) {
-            throw 'Can not find uniform ' + name + '.';
-        }
-        return uniformLocation;
-    }
-    var vertex = compileShader(`
-    attribute vec2 position;
-    void main() {
-        gl_Position = vec4(position, 0.0, 1.0);
-    }`, gl.VERTEX_SHADER);
+    var gl = new BetterWGL(document.getElementById("crt"));
+    gl.attachVertexShader(`#version 300 es
+    in vec4 position;
+    out vec2 graphix;
 
-    var fragment = compileShader(`
+    void main() {
+        gl_Position = position;
+        graphix = (position.xy + vec2(1.0, 1.0)) / 2.0;
+        graphix.y = 1.0 - graphix.y;
+    }
+    `);
+    gl.attachFragmentShader(`#version 300 es
     precision highp float;
-    uniform sampler2D samplah;
-    uniform vec2 dims;
+    out vec4 outColor;
+    in vec2 graphix;
+    uniform sampler2D image;
+    uniform vec2 screenSize;
+    uniform vec2 curvature;
+    uniform vec2 scanlineStrength;
 
     vec2 curveRemapUV(vec2 uv) {
-        vec2 curvature = vec2(4.0, 4.0);
         uv = uv * 2.0 - 1.0;
         vec2 offset = abs(uv.yx) / vec2(curvature.x, curvature.y);
         uv = uv + uv * offset * offset;
@@ -2128,65 +2107,27 @@ function prepCRT() {
     }
 
     void main() {
-        vec2 scanLineOpacity = vec2(0.1, 0.1);
-        vec2 map = vec2(gl_FragCoord.x / dims.x, 1.0 - gl_FragCoord.y / dims.y);
+        vec2 map = graphix;
         map = curveRemapUV(map);
-        vec4 baseColor = texture2D(samplah, map);
-        baseColor *= scanLine(map.x, dims.y, scanLineOpacity.x);
-        baseColor *= scanLine(map.y, dims.x, scanLineOpacity.y);
+        outColor = texture(image, map);
+        outColor *= scanLine(map.x, screenSize.y, scanlineStrength.x);
+        outColor *= scanLine(map.y, screenSize.x, scanlineStrength.y);
         float dX = (map.x - 0.5) * 2.0;
         float dY = (map.y - 0.5) * 2.0;
         float d = sqrt(dX * dX + dY * dY);
         d = pow(d, 5.0) * 0.2;
-        baseColor *= 1.0 - d;
-        baseColor.w = 1.0;
-        gl_FragColor = baseColor;
-    }
-    `, gl.FRAGMENT_SHADER);
-
-    var program = gl.createProgram();
-    gl.attachShader(program, vertex);
-    gl.attachShader(program, fragment);
-    gl.linkProgram(program);
-    gl.useProgram(program);
-    var plane = new Float32Array([
-        -1.0, 1.0,
-        -1.0, -1.0,
-        1.0, 1.0,
-        1.0, -1.0
-    ]);
-    var planeBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, planeBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, plane, gl.STATIC_DRAW);
-    var positionHandle = getAttribLocation(program, 'position');
-    gl.enableVertexAttribArray(positionHandle);
-    gl.vertexAttribPointer(positionHandle, 2, gl.FLOAT, gl.FALSE, 2 * 4, 0);
-
-    var dimsHandle = getUniformLocation(program, "dims");
-    var dims = new Float32Array([window.innerWidth, window.innerHeight]);
-    gl.uniform2fv(dimsHandle, dims);
-
-    window.addEventListener("resize", () => {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        dims[0] = window.innerWidth;
-        dims[1] = window.innerHeight;
-        gl.uniform2fv(dimsHandle, dims);
-    });
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    var sampler = getUniformLocation(program, "samplah");
-    var texture = gl.createTexture();
-
+        outColor *= 1.0 - d;
+        outColor.w = 1.0;
+    }`);
+    gl.setup();
+    gl.uniformFloat("curvature", [ [4.0, 4.0] ]);
+    gl.uniformFloat("scanlineStrength", [ [0.1, 0.1] ]);
     return () => {
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.viewport(0, 0, window.innerWidth, window.innerHeight);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, document.getElementById("game"));
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.uniform1i(sampler, 0);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        gl.resize(window.innerWidth, window.innerHeight);
+        gl.uniformFloat("screenSize", [ [window.innerWidth, window.innerHeight] ]);
+        gl.setTexture("image", document.getElementById("game"));
+        gl.draw();
     };
 }
+
+// TODO: Move metaballs to Better WGL.
