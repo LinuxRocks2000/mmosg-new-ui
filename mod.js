@@ -1248,6 +1248,37 @@ class Game {
                     this.status.isRTF = true;
                     this.inventory = [
                         {
+                            name: "SEED",
+                            cost: 10,
+                            descriptionL1: "A seed that eventually grows into a chest.",
+                            descriptionL2: "",
+                            place: {
+                                word: "S"
+                            }
+                        },
+                        {
+                            name: "BASIC FIGHTER",
+                            cost: 10,
+                            descriptionL1: "Low motion speed, medium shot cooldown,",
+                            descriptionL2: "medium bullet range, 2 health.",
+                            place: {
+                                word: "f"
+                            }
+                        },
+                        {
+                            name: "+2 WALL",
+                            cost: 30,
+                            descriptionL1: "Place 2 extra walls around any castle or fort",
+                            descriptionL2: "every turn.",
+                            place: {
+                                shop: 'w',
+                                cbk() {
+                                    game.status.wallsTurn += 2;
+                                    game.status.wallsRemaining += 2;
+                                }
+                            }
+                        },
+                        {
                             name: "AIR TO AIR MISSILE",
                             cost: 100,
                             descriptionL1: "",
