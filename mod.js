@@ -1,6 +1,7 @@
 const DEBUG = false;
 const BARE = false;
 const INTERPOLATE = true;
+const passive = ["w", "T", "m", "S"]; // types that can be legally placed near forts
 
 function clamp(min, val, max) {
     if (val < min) {
@@ -379,7 +380,7 @@ class Sidebar {
             }
         }
         this.availability(ctx, "CASTLE PLACEMENT", 779, !parent.status.mouseWithinNarrowField);
-        this.availability(ctx, "OBJECT PLACEMENT", 803, parent.status.canPlaceObject);
+        this.availability(ctx, "OBJECT PLACEMENT", 803, parent.status.canPlaceObject || parent.status.placeAroundFort);
 
         Object.values(parent.objects).forEach(obj => {
             var scaleX = 220 / parent.gamesize;
@@ -433,7 +434,7 @@ class Sidebar {
             ctx.fillStyle = "#CCC";
             ctx.fillText("UPGRADES", 18, 448 + 14);
             this.upgradeHovered = undefined;
-            this.drawUpgradeBar(parent, "g", "GUN", (parent.castle.highestUpgradeTier('b') + 1)/3, parent.castle.highestUpgradeTier('b')/3, 505, parent.minimalistic);
+            this.drawUpgradeBar(parent, "g", "GUN", (parent.castle.highestUpgradeTier('b') + 1)/4, parent.castle.highestUpgradeTier('b')/4, 505, parent.minimalistic);
             this.drawUpgradeBar(parent, "s", "CLOAKING", (parent.castle.highestUpgradeTier('s') + 1)/2, (parent.castle.highestUpgradeTier('s'))/2, 539, parent.minimalistic);
             this.drawUpgradeBar(parent, "f", "DRIVE", (parent.castle.highestUpgradeTier('f') + 1)/3, parent.castle.highestUpgradeTier('f')/3, 573, parent.minimalistic);
             this.drawUpgradeBar(parent, "h", "HEALTH", (parent.castle.highestUpgradeTier('h') + 1)/4, parent.castle.highestUpgradeTier('h')/4, 607, parent.minimalistic);
@@ -771,7 +772,11 @@ class GameObject {
             ctx.fillRect(-w / 2, -h / 2, w, h);
         }
         else if (this.type == "w") {
-            ctx.drawImage(document.querySelector("img#wall"), -15, -15);
+            ctx.drawImage(document.querySelector("img#wall"), -30, -30, 60, 60);
+        }
+        else if (this.type == "S") {
+            ctx.fillStyle = "green";
+            ctx.fillRect(-5, -5, 10, 10);
         }
         else if (this.type == "K") {
             ctx.fillStyle = "#555";
@@ -1062,6 +1067,7 @@ class Game {
             tickTime: 1000 / 30, // Number of milliseconds between ticks or !s; this is adjusted based on real-time data.
             lastTickTime: -1,
             canPlaceObject: false, // if the mouse is close to the home castle with 400 tolerance
+            placeAroundFort: false, // if the mouse is close to any fort with 400 tolerance
             mouseWithinNarrowField: false, // if the mouse is close to any game object with 400 tolerance
             mouseWithinWideField: false, // if the mouse is close to any game object with 600 tolerance
             isRTF: false,
@@ -1136,6 +1142,15 @@ class Game {
                 }
             },
             {
+                name: "SEED",
+                cost: 10,
+                descriptionL1: "A seed that eventually grows into a chest.",
+                descriptionL2: "",
+                place: {
+                    word: "S"
+                }
+            },
+            {
                 name: "BASIC FIGHTER",
                 cost: 10,
                 descriptionL1: "Low motion speed, medium shot cooldown,",
@@ -1168,7 +1183,11 @@ class Game {
                 descriptionL1: "Place 2 extra walls around any castle or fort",
                 descriptionL2: "every turn.",
                 place: {
-                    shop: 'w'
+                    shop: 'w',
+                    cbk() {
+                        game.status.wallsTurn += 2;
+                        game.status.wallsRemaining += 2;
+                    }
                 }
             },
             {
@@ -1361,7 +1380,7 @@ class Game {
             this.status.spectating = true;
         });
         connection.setOnMessage("End", (banner) => {
-            if (this.castle.banner == banner) {
+            if (this.castle && this.castle.banner == banner) {
                 screen("youWin");
             }
             else {
@@ -1371,6 +1390,7 @@ class Game {
             setTimeout(() => {
                 window.location.reload();
             }, 3000);
+            console.log("u luuz");
         });
         connection.setOnMessage("UpgradeThing", (id, upgrade) => {
             this.objects[id].upgrade(upgrade);
@@ -1391,7 +1411,7 @@ class Game {
     }
 
     attemptWall(x, y) {
-        if (this.status.canPlaceObject && this.status.wallsRemaining > 0) {
+        if ((this.status.canPlaceObject || this.status.placeAroundFort) && this.status.wallsRemaining > 0) {
             this.place("w");
             this.status.wallsRemaining--;
         }
@@ -1503,6 +1523,10 @@ class Game {
         this.ctx.restore();
     }
 
+    fortPlace() {
+        return this.sidebar.inventorySelected && this.sidebar.inventorySelected.place.word && this.status.placeAroundFort && passive.indexOf(this.sidebar.inventorySelected.place.word) != -1;
+    }
+
     cantPlace() { // COSMETIC: this is meant for user displays, NOT for logic.
         if (!this.status.hasPlacedCastle && this.status.mouseWithinNarrowField) { // if it isn't 
             return true;
@@ -1511,7 +1535,7 @@ class Game {
             if (this.sidebar.inventorySelected.place.word == "F" && !this.status.mouseWithinNarrowField) {
                 return false;
             }
-            if (!this.status.canPlaceObject) {
+            if (!this.status.canPlaceObject && !this.fortPlace()) {
                 return true;
             }
         }
@@ -1628,7 +1652,7 @@ class Game {
         this.renderUI(interpolator);
         if (this.crt) {
             this.crt();
-            this.ctx.drawImage(document.getElementById("crt"), 0, 0);
+            //this.ctx.drawImage(document.getElementById("crt"), 0, 0);
         }
     }
 
@@ -1669,15 +1693,17 @@ class Game {
         this.status.mouseWithinWideField = this.mouseFieldCheck(600);
         if (this.castle) {
             this.status.canPlaceObject = this.mouseFieldCheckOnOne(400, this.castle);
+            this.status.placeAroundFort = false;
             this.mine.forEach(id => {
                 var item = this.objects[id];
                 if (item == undefined) {
                     return;
                 }
                 if (item.type == "F") {
-                    this.status.canPlaceObject |= this.mouseFieldCheckOnOne(400, item);
+                    this.status.placeAroundFort |= this.mouseFieldCheckOnOne(400, item);
                 }
             });
+            this.status.canPlaceObject |= this.fortPlace();
             this.status.canPlaceObject &= this.status.moveShips || this.status.isRTF; // you can only place stuff during strat mode
         }
     }
@@ -1934,7 +1960,6 @@ async function play() {
                 else {
                     game.rightMouseDown();
                 }
-                console.log(evt);
             });
 
             document.getElementById("game").addEventListener("mouseup", (evt) => {
@@ -2123,8 +2148,8 @@ function prepCRT() {
     gl.setup();
     gl.uniformFloat("curvature", [ [4.0, 4.0] ]);
     gl.uniformFloat("scanlineStrength", [ [0.1, 0.1] ]);
+    gl.resize(window.innerWidth, window.innerHeight);
     return () => {
-        gl.resize(window.innerWidth, window.innerHeight);
         gl.uniformFloat("screenSize", [ [window.innerWidth, window.innerHeight] ]);
         gl.setTexture("image", document.getElementById("game"));
         gl.draw();
