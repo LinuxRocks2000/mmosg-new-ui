@@ -1,4 +1,4 @@
-const DEBUG = false;
+const DEBUG = true;
 const BARE = false;
 const INTERPOLATE = true;
 const passive = ["w", "T", "m", "S"]; // types that can be legally placed near forts
@@ -798,6 +798,11 @@ class GameObject {
         else if (this.type == "r") {
 
         }
+        else if (this.type == "s") {
+            ctx.rotate(Math.PI / 2);
+            ctx.drawImage(document.querySelector("img#sniper"), -24, -36);
+            ctx.rotate(-Math.PI / 2);
+        }
         else {
             ctx.strokeRect(-w / 2, -h / 2, w, h);
         }
@@ -870,10 +875,11 @@ class GameObject {
             ctx.translate(-this.goalPos.x, -this.goalPos.y);
         }
         if (this.bodyHovered) {
+            const fontSize = 16;
             ctx.fillStyle = "#F3BB38";
-            ctx.font = "8px 'Chakra Petch'";
-            var tooltipHeight = this.isOurs ? 40 : 30; // use isOurs here because we can't see what our teammates are doing, the game is not _nice_ that way.
-            var tooltipWidth = Math.max(41, ctx.measureText(master.banners[this.banner]).width + 4);
+            ctx.font = fontSize + "px 'Chakra Petch'";
+            var tooltipHeight = this.isOurs ? 4 * fontSize + 5 : 3 * fontSize + 5; // use isOurs here because we can't see what our teammates are doing, the game is not _nice_ that way.
+            var tooltipWidth = Math.max(ctx.measureText("NEUTRAL").width + 4, ctx.measureText(master.banners[this.banner]).width + 4);
             ctx.fillRect(x - 40 - tooltipWidth, y - tooltipHeight/2, tooltipWidth, tooltipHeight);
             ctx.beginPath();
             ctx.moveTo(x - 41, y - 5);
@@ -882,9 +888,9 @@ class GameObject {
             ctx.closePath();
             ctx.fill();
             ctx.fillStyle = "black";
-            ctx.fillText(this.getTypeString(), x - 38 - tooltipWidth, y - tooltipHeight/2 + 9);
-            ctx.fillText(this.getFriendlinessString(), x - 38 - tooltipWidth, y - tooltipHeight / 2 + 18);
-            ctx.fillText(master.banners[this.banner], x - 38 - tooltipWidth, y - tooltipHeight / 2 + 27)
+            ctx.fillText(this.getTypeString(), x - 38 - tooltipWidth, y - tooltipHeight/2 + fontSize + 1);
+            ctx.fillText(this.getFriendlinessString(), x - 38 - tooltipWidth, y - tooltipHeight / 2 + (fontSize + 1) * 2);
+            ctx.fillText(master.banners[this.banner], x - 38 - tooltipWidth, y - tooltipHeight / 2 + (fontSize + 1) * 3)
             if (this.isOurs) {
                 var dx = this.x - this.goalPos.initialX;
                 var dy = this.y - this.goalPos.initialY;
@@ -898,7 +904,7 @@ class GameObject {
                         toPrint = "100%";
                     }
                 }
-                ctx.fillText(toPrint, x - 38 - tooltipWidth, y - tooltipHeight / 2 + 36);
+                ctx.fillText(toPrint, x - 38 - tooltipWidth, y - tooltipHeight / 2 + (fontSize + 1) * 4);
             }
         }
         if (master.seeking == this) {
