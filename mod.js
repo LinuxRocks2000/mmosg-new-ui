@@ -1,4 +1,4 @@
-const DEBUG = true;
+const DEBUG = false;
 const BARE = false;
 const INTERPOLATE = true;
 const passive = ["w", "T", "m", "S"]; // types that can be legally placed near forts
@@ -793,6 +793,13 @@ class GameObject {
         else if (this.type == "h") {
             ctx.rotate(Math.PI / 2);
             ctx.drawImage(document.querySelector("img#missile"), -13, -22);
+            var dX = this.goalPos.x - this.x;
+            var dY = this.goalPos.y - this.y;
+            dX *= dX;
+            dY *= dY;
+            if (dX + dY > 25) {
+                master.drawThruster(0, 22, 20, 20, 15);
+            }
             ctx.rotate(-Math.PI / 2);
         }
         else if (this.type == "r") {
