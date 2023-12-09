@@ -732,6 +732,11 @@ class GameObject {
         var a = this.getA(interpolator);
         var x = this.getX(interpolator);
         var y = this.getY(interpolator);
+        if (this.carried && !master.status.moveShips) {
+            this.goalPos.x = x;
+            this.goalPos.y = y;
+            this.goalPos.angle = a;
+        }
         if (this.upgrades.indexOf("s2") != -1) {
             if (Math.abs(this.x - this.xOld) < 0.5 && Math.abs(this.y - this.yOld) < 0.5) {
                 if (!this.isOurs && !master.status.moveShips) {
@@ -1460,6 +1465,13 @@ class Game {
         });
         connection.setOnMessage("SeedCompletion", (seedId, value) => {
             this.objects[seedId].seedCompVal = 100 - value;
+        });
+        connection.setOnMessage("Carry", (carrier, carried) => {
+            this.objects[carried].carried = true;
+            this.objects[carried].carrier = carrier;
+        });
+        connection.setOnMessage("UnCarry", (carried) => {
+            this.objects[carried].carried = false;
         });
     }
 
