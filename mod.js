@@ -1609,6 +1609,7 @@ class Game {
         this.ctx.fillText(this.status.getChairBites(), 18 + width + 13, 28 + 6 + 21 / 2);
         width += 13 + this.ctx.measureText(word).width;
         this.ctx.fillStyle = "#CBCAFF";
+        this.ctx.font = "32px 'Chakra Petch'";
         this.ctx.fillText(this.status.getTimeString(interpolator), 18 + width + 17, 28 + 6 + 21 / 2);
         if (this.cantPlace()) {
             this.ctx.fillStyle = "red";
