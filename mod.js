@@ -775,8 +775,11 @@ class GameObject {
             ctx.drawImage(document.querySelector("img#wall"), -30, -30, 60, 60);
         }
         else if (this.type == "S") {
-            ctx.fillStyle = "green";
-            ctx.fillRect(-5, -5, 10, 10);
+            var image = document.querySelector("img#seed1");
+            if (this.seedCompVal >= 50) {
+                image = document.querySelector("img#seed2");
+            }
+            ctx.drawImage(image, -8, -8);
         }
         else if (this.type == "K") {
             ctx.fillStyle = "#555";
@@ -910,6 +913,9 @@ class GameObject {
                     if (this.goalPos.displacement == 0) {
                         toPrint = "100%";
                     }
+                }
+                if (this.seedCompVal != undefined) {
+                    toPrint = this.seedCompVal + "%";
                 }
                 ctx.fillText(toPrint, x - 38 - tooltipWidth, y - tooltipHeight / 2 + (fontSize + 1) * 4);
             }
@@ -1452,6 +1458,9 @@ class Game {
                 screen("gameui");
             }, 1000);
         });
+        connection.setOnMessage("SeedCompletion", (seedId, value) => {
+            this.objects[seedId].seedCompVal = 100 - value;
+        });
     }
 
     attemptWall(x, y) {
@@ -1608,14 +1617,15 @@ class Game {
         this.ctx.fillStyle = "white";
         this.ctx.fillText(this.status.getChairBites(), 18 + width + 13, 28 + 6 + 21 / 2);
         width += 13 + this.ctx.measureText(word).width;
-        this.ctx.fillStyle = "#CBCAFF";
-        this.ctx.font = "32px 'Chakra Petch'";
-        this.ctx.fillText(this.status.getTimeString(interpolator), 18 + width + 17, 28 + 6 + 21 / 2);
         if (this.cantPlace()) {
             this.ctx.fillStyle = "red";
             this.ctx.textAlign = "center";
             this.ctx.fillText("[ CAN'T PLACE HERE ]", window.innerWidth/2, 18);
         }
+        this.ctx.textAlign = "left";
+        this.ctx.fillStyle = "#CBCAFF";
+        this.ctx.font = "32px 'Chakra Petch'";
+        this.ctx.fillText(this.status.getTimeString(interpolator), 18 + width + 17, 28 + 6 + 21 / 2);
     }
 
     renderUI(interpolator) {
