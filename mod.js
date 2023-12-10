@@ -818,6 +818,18 @@ class GameObject {
             ctx.drawImage(document.querySelector("img#sniper"), -24, -36);
             ctx.rotate(-Math.PI / 2);
         }
+        else if (this.type == "B") {
+            if (master.fancyBackground) {
+                ctx.filter = "blur(20px)";
+                var transformed = master.transformPoint(-w / 2, -h / 2);
+                ctx.drawImage(ctx.canvas, transformed[0], transformed[1], w * master.zoomLevel, h * master.zoomLevel, -w / 2, -h / 2, w, h);
+                ctx.filter = "none";
+            }
+            ctx.fillStyle = "black";
+            ctx.globalAlpha = 0.3;
+            ctx.fillRect(-w / 2, -h / 2, w, h);
+            ctx.globalAlpha = 1;
+        }
         else {
             ctx.strokeRect(-w / 2, -h / 2, w, h);
         }
