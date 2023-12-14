@@ -602,9 +602,11 @@ class Sidebar {
                 parent.score -= prices[this.upgradeHovered]; // this is not authoritative, but should be accurate, so accidental doubleclicks won't end up in disconnection (because cost message lag)
             }
         }
-        if (parent.mouseX > 20 && parent.mouseX < 260 && parent.mouseY + parent.sideScroll > 700 && parent.mouseY + parent.sideScroll < 720) {
-            parent.status.isReady = !parent.status.isReady;
-            parent.setReadyState(parent.status.isReady);
+        if (!this.isInventory) {
+            if (parent.mouseX > 20 && parent.mouseX < 260 && parent.mouseY + parent.sideScroll > 700 && parent.mouseY + parent.sideScroll < 720) {
+                parent.status.isReady = !parent.status.isReady;
+                parent.setReadyState(parent.status.isReady);
+            }
         }
     }
 }
@@ -678,6 +680,15 @@ class GameObject {
         }
         if (this.type == "C") {
             return "CHEST";
+        }
+        if (this.type == "F") {
+            return "FORT";
+        }
+        if (this.type == "G") {
+            return "GREEN THUMB";
+        }
+        if (this.type == "g") {
+            return "GOLD BAR";
         }
         return "SHIP";
     }
@@ -794,6 +805,10 @@ class GameObject {
             ctx.fillRect(5, 25, 20, 5);
             ctx.fillStyle = "yellow";
             ctx.fillRect(25, 2.5, 170, 5);
+        }
+        else if (this.type == 'g') {
+            ctx.fillStyle = "gold";
+            ctx.fillRect(-25, -15, 50, 30);
         }
         else if (this.type == "f") {
             ctx.rotate(Math.PI / 2);
@@ -1262,6 +1277,15 @@ class Game {
                 descriptionL2: "",
                 place: {
                     word: "K"
+                }
+            },
+            {
+                name: "GOLD BAR",
+                cost: 100,
+                descriptionL1: "Easily-killed gold bar that grants 100 coins",
+                descriptionL2: "to the killer. Useful for money transfers.",
+                place: {
+                    word: "g"
                 }
             },
             {
