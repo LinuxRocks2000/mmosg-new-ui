@@ -1,7 +1,7 @@
 const DEBUG = false;
 const BARE = false;
 const INTERPOLATE = true;
-const passive = ["w", "T", "m", "S"]; // types that can be legally placed near forts
+const passive = ["w", "T", "m", "S", "G", "g"]; // types that can be legally placed near forts
 
 function clamp(min, val, max) {
     if (val < min) {
@@ -798,13 +798,13 @@ class GameObject {
         }
         else if (this.type == "G") {
             ctx.fillStyle = "blue";
-            ctx.fillRect(-5, -5, 30, 20);
+            ctx.fillRect(-15, -10, 30, 20);
             ctx.fillStyle = "red";
-            ctx.fillRect(5, -15, 5, 40);
-            ctx.fillRect(5, -20, 20, 5);
-            ctx.fillRect(5, 25, 20, 5);
+            ctx.fillRect(-2.5, -20, 5, 40);
+            ctx.fillRect(-10, -25, 20, 5);
+            ctx.fillRect(-10, 20, 20, 5);
             ctx.fillStyle = "yellow";
-            ctx.fillRect(25, 2.5, 170, 5);
+            ctx.fillRect(15, -2.5, 170, 5);
         }
         else if (this.type == 'g') {
             ctx.fillStyle = "gold";
