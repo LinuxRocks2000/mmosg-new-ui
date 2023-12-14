@@ -785,6 +785,16 @@ class GameObject {
         else if (this.type == "C") {
             ctx.drawImage(document.querySelector("img#chest"), -15, -17);
         }
+        else if (this.type == "G") {
+            ctx.fillStyle = "blue";
+            ctx.fillRect(-5, -5, 30, 20);
+            ctx.fillStyle = "red";
+            ctx.fillRect(5, -15, 5, 40);
+            ctx.fillRect(5, -20, 20, 5);
+            ctx.fillRect(5, 25, 20, 5);
+            ctx.fillStyle = "yellow";
+            ctx.fillRect(25, 2.5, 170, 5);
+        }
         else if (this.type == "f") {
             ctx.rotate(Math.PI / 2);
             ctx.drawImage(document.querySelector("img#ship"), -17, -21);
@@ -1289,6 +1299,15 @@ class Game {
                     word: "n"
                 }
             },
+            {
+                name: "GREEN THUMB",
+                cost: 1000,
+                descriptionL1: "Places seeds automatically.",
+                descriptionL2: "",
+                place: {
+                    word: 'G'
+                }
+            }
         ];
     }
 
