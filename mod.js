@@ -183,6 +183,21 @@ class Sidebar {
             ctx.stroke(this.dumpass);
         }
 
+        /* whenever I build the ready state thing re-enable this.
+        ctx.font = "20px 'Chakra Petch'";
+        var t = "READY";
+        if (parent.status.isReady) {
+            ctx.fillStyle = "red";
+        }
+        else {
+            ctx.fillStyle = "green";
+            t = "NOT READY";
+        }
+        ctx.fillRect(20, 700, 220, 20);
+        ctx.fillStyle = "white";
+        ctx.textAlign = "center";
+        ctx.fillText(t, 135, 718);*/
+
         ctx.font = "bold 14px 'Chakra Petch'";
         ctx.textAlign = "left";
         ctx.fillStyle = "white";
@@ -587,6 +602,9 @@ class Sidebar {
                 parent.shop(this.upgradeHovered);
                 parent.score -= prices[this.upgradeHovered]; // this is not authoritative, but should be accurate, so accidental doubleclicks won't end up in disconnection (because cost message lag)
             }
+        }
+        if (parent.mouseX > 20 && parent.mouseX < 260 && parent.mouseY + parent.sideScroll > 700 && parent.mouseY + parent.sideScroll < 720) {
+            parent.status.isReady = !parent.status.isReady;
         }
     }
 }
@@ -1771,7 +1789,7 @@ class Game {
         this.status.mouseWithinNarrowField = this.mouseFieldCheck(400);
         this.status.mouseWithinWideField = this.mouseFieldCheck(600);
         if (this.castle) {
-            this.status.canPlaceObject = this.mouseFieldCheckOnOne(400, this.castle);
+            this.status.canPlaceObject = this.mouseFieldCheckOnOne(800, this.castle);
             this.status.placeAroundFort = false;
             this.mine.forEach(id => {
                 var item = this.objects[id];
