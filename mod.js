@@ -183,7 +183,6 @@ class Sidebar {
             ctx.stroke(this.dumpass);
         }
 
-        /* whenever I build the ready state thing re-enable this.
         ctx.font = "20px 'Chakra Petch'";
         var t = "READY";
         if (parent.status.isReady) {
@@ -196,7 +195,7 @@ class Sidebar {
         ctx.fillRect(20, 700, 220, 20);
         ctx.fillStyle = "white";
         ctx.textAlign = "center";
-        ctx.fillText(t, 135, 718);*/
+        ctx.fillText(t, 135, 718);
 
         ctx.font = "bold 14px 'Chakra Petch'";
         ctx.textAlign = "left";
@@ -605,6 +604,7 @@ class Sidebar {
         }
         if (parent.mouseX > 20 && parent.mouseX < 260 && parent.mouseY + parent.sideScroll > 700 && parent.mouseY + parent.sideScroll < 720) {
             parent.status.isReady = !parent.status.isReady;
+            parent.setReadyState(parent.status.isReady);
         }
     }
 }
@@ -1082,6 +1082,7 @@ class Game {
         this.rtf = connection.sendHandle("PilotRTF");
         this.chat = connection.sendHandle("Chat");
         this.shop = connection.sendHandle("Shop");
+        this.setReadyState = connection.sendHandle("ReadyState");
         this.setListeners(connection);
         setInterval(() => {
             this.status.online = this.ponged;
@@ -1387,6 +1388,9 @@ class Game {
             }
             var oldStatus = this.status.moveShips;
             this.status.moveShips = mode == 1;
+            if (!this.status.moveShips) {
+                this.status.isReady = false;
+            }
             if (this.status.moveShips && !oldStatus) {
                 this.enterMoveShips();
             }
