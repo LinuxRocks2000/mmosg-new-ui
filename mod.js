@@ -116,7 +116,7 @@ class Sidebar {
 
     drawInventory(parent) {
         const curveRadius = 24;
-        const inventoryObjectHeight = 75;
+        const inventoryObjectHeight = 85;
         var ctx = parent.ctx;
         var inventoryTotalHeight = Math.max(parent.inventory.length * inventoryObjectHeight + 57, window.innerHeight - 56);
         this.scrollHeight = inventoryTotalHeight;
@@ -132,6 +132,7 @@ class Sidebar {
         ctx.fill();
         parent.inventory.forEach((item, i) => {
             var rootY = 57 + i * inventoryObjectHeight;
+            var frCost = item.cost + (item.place.activeVariant ? item.place.variants[item.place.activeVariant - 1].eCost : 0);
             if (item.selected) {
                 ctx.fillStyle = "#440000";
                 ctx.fillRect(0, rootY, 266, inventoryObjectHeight);
@@ -141,16 +142,18 @@ class Sidebar {
             ctx.textAlign = "left";
             ctx.fillText(item.name, 30, rootY + 14);
             ctx.fillStyle = "white";
-            var width = ctx.measureText(item.cost + "").width;
+            var width = ctx.measureText(frCost + "").width;
             ctx.fillRect(246 - width, rootY, width, 18);
             ctx.fillStyle = "black";
-            ctx.fillText(item.cost, 246 - width, rootY + 14);
+            ctx.fillText(frCost, 246 - width, rootY + 14);
             ctx.fillStyle = "blue";
             ctx.font = "10px 'Chakra Petch'";
             ctx.fillText(item.descriptionL1, 20, rootY + 40);
             ctx.fillText(item.descriptionL2, 20, rootY + 50);
+            ctx.fillStyle = "green";
+            ctx.fillText("VARIANT: " + (item.place.activeVariant ? item.place.variants[item.place.activeVariant - 1].name : "N/A"), 20, rootY + 60);
             item.hovered = false;
-            if (parent.status.score >= item.cost && item.stack != 0) {
+            if (parent.status.score >= frCost && item.stack != 0) {
                 if (parent.mouseX < 266 && parent.mouseY + parent.sideScroll > rootY && parent.mouseY + parent.sideScroll < rootY + inventoryObjectHeight) {
                     ctx.lineWidth = 1;
                     ctx.strokeStyle = "white";
@@ -1202,6 +1205,10 @@ class Game {
             right: false,
             shoot: false
         };
+        var hypersonics = (x) => { return x * 5 };
+        var turrets = (x) => { return x * 100 };
+        var nukes = (x) => { return x * 300 };
+        var tiefighters = (x) => { return x * 20 };
         this.inventory = [
             {
                 name: "HYPERSONIC MISSILE",
@@ -1276,7 +1283,33 @@ class Game {
                 descriptionL1: "",
                 descriptionL2: "",
                 place: {
-                    word: "K"
+                    word: "K",
+                    variants: [
+                        {
+                            name: "MOFARD",
+                            eCost: nukes(2) + hypersonics(4) + turrets(4)
+                        },
+                        {
+                            name: "MOFARD LIGHT",
+                            eCost: nukes(2) + turrets(2) + hypersonics(6)
+                        },
+                        {
+                            name: "DEFENSE",
+                            eCost: turrets(5) + hypersonics(5)
+                        },
+                        {
+                            name: "BUGGER",
+                            eCost: hypersonics(10)
+                        },
+                        {
+                            name: "LIGHT WALLBREAKER",
+                            eCost: tiefighters(4) + hypersonics(6)
+                        },
+                        {
+                            name: "WALLBREAKER",
+                            eCost: tiefighters(10)
+                        }
+                    ]
                 }
             },
             {
@@ -1546,6 +1579,9 @@ class Game {
         connection.setOnMessage("Carry", (carrier, carried) => {
             this.objects[carried].carried = true;
             this.objects[carried].carrier = carrier;
+            this.objects[carried].goalPos.x = this.objects[carried].x;
+            this.objects[carried].goalPos.y = this.objects[carried].y;
+            this.objects[carried].goalPos.a = this.objects[carried].angle;
         });
         connection.setOnMessage("UnCarry", (carried) => {
             this.objects[carried].carried = false;
@@ -1987,8 +2023,8 @@ class Game {
         this.rightMouse = false;
     }
 
-    place(type) {
-        this.doPlace(this.gameX, this.gameY, type.charCodeAt(0));
+    place(type, variant = 0) {
+        this.doPlace(this.gameX, this.gameY, type.charCodeAt(0), variant);
     }
 
     mouseUp() {
@@ -2001,7 +2037,8 @@ class Game {
                 if (this.sidebar.inventorySelected && (this.status.moveShips || this.status.isRTF)) {
                     if (this.status.canPlaceObject || (this.sidebar.inventorySelected.place.word == "F" && !this.status.mouseWithinNarrowField)) {
                         if (this.sidebar.inventorySelected.place.word) {
-                            this.place(this.sidebar.inventorySelected.place.word);
+                            this.place(this.sidebar.inventorySelected.place.word, this.sidebar.inventorySelected.place.activeVariant);
+                            this.sidebar.inventorySelected.place.activeVariant = 0;
                         }
                         if (this.sidebar.inventorySelected.stack) {
                             this.sidebar.inventorySelected.stack--;
@@ -2154,6 +2191,21 @@ async function play() {
                     }
                     if (evt.key == "r" && game.status.isRTF) {
                         game.accurateRTF = !game.accurateRTF;
+                    }
+                    if (!isNaN(evt.key)) {
+                        var variant = evt.key - 0;
+                        game.inventory.forEach(item => {
+                            if (item.selected) {
+                                if (item.place.variants[variant - 1]) {
+                                    if (item.place.variants[variant - 1].eCost + item.cost <= game.status.score) {
+                                        item.place.activeVariant = variant;
+                                    }
+                                    else {
+                                        console.log("8=====D");
+                                    }
+                                }
+                            }
+                        });
                     }
                 }
             });
