@@ -2077,7 +2077,7 @@ class Game {
                 if (this.sidebar.inventorySelected && (this.status.moveShips || this.status.isRTF)) {
                     if (this.status.canPlaceObject || (this.sidebar.inventorySelected.place.word == "F" && !this.status.mouseWithinNarrowField)) {
                         if (this.sidebar.inventorySelected.place.word) {
-                            this.place(this.sidebar.inventorySelected.place.word, this.sidebar.inventorySelected.place.variants[this.sidebar.inventorySelected.place.activeVariant - 1].variantID);
+                            this.place(this.sidebar.inventorySelected.place.word, this.sidebar.inventorySelected.place.activeVariant ? this.sidebar.inventorySelected.place.variants[this.sidebar.inventorySelected.place.activeVariant - 1].variantID : 0);
                             this.sidebar.inventorySelected.place.activeVariant = 0;
                         }
                         if (this.sidebar.inventorySelected.stack) {
