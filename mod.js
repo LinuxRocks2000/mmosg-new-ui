@@ -1216,7 +1216,7 @@ class Game {
             };
             for (var i = 0; i < vText.length; i++) {
                 var bit = y + x * 2;
-                bit = 8 ** bit; // 8 possibilities per berth: BLANK, hypersonic, basic fighter, tie fighter, sniper, nuke, turret, missile launcher
+                bit = 9 ** bit; // 8 possibilities per berth: BLANK, hypersonic, basic fighter, tie fighter, sniper, nuke, turret, missile launcher
                 if (vText[i] == '\n') {
                     y++;
                     x = -1;
@@ -1252,6 +1252,9 @@ class Game {
                 else if (vText[i] == '_') {
                     ret.variantID += 0 * bit;
                     ret.eCost += 0;
+                }
+                else if (vText[i] == 'g') {
+                    ret.variantID += 8 * bit;
                 }
                 else {
                     x--; // it's a blank space, don't increment x
