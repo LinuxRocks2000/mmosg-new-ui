@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>MMOSG Carrier Editor</title>
+        <link rel="stylesheet" href="carriers.css">
+    </head>
+    <body>
+        <div id="carriers">
+        </div>
+    </body>
+    <script type="text/javascript">
+        var carriers = document.getElementById("carriers");
+        if (!localStorage.carriers) {
+            alert("You have no carriers saved! Installing the defaults.");
+            localStorage.carriers = JSON.stringify([
+                {
+                    name: "MOFARD",
+                    data: `T h n h T
+                           T h n h T`
+                },
+                {
+                    name: "NULL",
+                    data: ""
+                },
+                {
+                    name: "NULL",
+                    data: ""
+                },
+                {
+                    name: "NULL",
+                    data: ""
+                },
+                {
+                    name: "NULL",
+                    data: ""
+                },
+                {
+                    name: "NULL",
+                    data: ""
+                },
+                {
+                    name: "NULL",
+                    data: ""
+                },
+                {
+                    name: "NULL",
+                    data: ""
+                },
+                {
+                    name: "NULL",
+                    data: ""
+                },
+                {
+                    name: "NULL",
+                    data: ""
+                }
+            ]);
+        }
+        var carrierData = JSON.parse(localStorage.carriers);
+        for (let x = 0; x < 9; x ++) {
+            let el = document.createElement("div");
+            carriers.appendChild(el);
+            let heading = document.createElement("h1");
+            heading.innerText = carrierData[x].name;
+            el.appendChild(heading);
+            let cData = document.createElement("p");
+            cData.innerText = carrierData[x].data;
+            el.appendChild(cData);
+            cData.contentEditable = true;
+            heading.contentEditable = true;
+            let editThisOne = () => {
+                carrierData[x].name = heading.innerText;
+                carrierData[x].data = cData.innerText;
+                localStorage.carriers = JSON.stringify(carrierData);
+            };
+            heading.oninput = editThisOne;
+            cData.oninput = editThisOne;
+        }
+    </script>
+</html>

@@ -1205,10 +1205,75 @@ class Game {
             right: false,
             shoot: false
         };
-        var hypersonics = (x) => { return x * 5 };
-        var turrets = (x) => { return x * 100 };
-        var nukes = (x) => { return x * 300 };
-        var tiefighters = (x) => { return x * 20 };
+        var carrierVariant = (name, vText) => {
+            // bitbangs. it's fuuun!
+            var x = 0;
+            var y = 0;
+            var ret = {
+                name: name,
+                eCost: 0,
+                variantID: 0
+            };
+            for (var i = 0; i < vText.length; i++) {
+                var bit = y + x * 2;
+                bit = 8 ** bit; // 8 possibilities per berth: BLANK, hypersonic, basic fighter, tie fighter, sniper, nuke, turret, missile launcher
+                if (vText[i] == '\n') {
+                    y++;
+                    x = -1;
+                }
+                else if (vText[i] == 'h') {
+                    ret.variantID += 1 * bit;
+                    ret.eCost += 5;
+                }
+                else if (vText[i] == 'f') {
+                    ret.variantID += 2 * bit;
+                    ret.eCost += 10;
+                }
+                else if (vText[i] == 't') {
+                    ret.variantID += 3 * bit;
+                    ret.eCost += 20;
+                }
+                else if (vText[i] == 's') {
+                    ret.variantID += 4 * bit;
+                    ret.eCost += 30;
+                }
+                else if (vText[i] == 'n') {
+                    ret.variantID += 5 * bit;
+                    ret.eCost += 300;
+                }
+                else if (vText[i] == 'T') {
+                    ret.variantID += 6 * bit;
+                    ret.eCost += 100;
+                }
+                else if (vText[i] == 'm') {
+                    ret.variantID += 7 * bit;
+                    ret.eCost += 100;
+                }
+                else if (vText[i] == '_') {
+                    ret.variantID += 0 * bit;
+                    ret.eCost += 0;
+                }
+                else {
+                    x--; // it's a blank space, don't increment x
+                }
+                x++;
+            }
+            return ret;
+        };
+        if (!localStorage.carriers) {
+            localStorage.carriers = JSON.stringify([
+                {
+                    name: "MOFARD",
+                    data: `T h n h T
+                           T h n h T`
+                }
+            ]);
+        }
+        var compiledCarriers = [];
+        var cDat = JSON.parse(localStorage.carriers);
+        cDat.forEach(carrier => {
+            compiledCarriers.push(carrierVariant(carrier.name, carrier.data));
+        });
         this.inventory = [
             {
                 name: "HYPERSONIC MISSILE",
@@ -1284,32 +1349,7 @@ class Game {
                 descriptionL2: "",
                 place: {
                     word: "K",
-                    variants: [
-                        {
-                            name: "MOFARD",
-                            eCost: nukes(2) + hypersonics(4) + turrets(4)
-                        },
-                        {
-                            name: "MOFARD LIGHT",
-                            eCost: nukes(2) + turrets(2) + hypersonics(6)
-                        },
-                        {
-                            name: "DEFENSE",
-                            eCost: turrets(5) + hypersonics(5)
-                        },
-                        {
-                            name: "BUGGER",
-                            eCost: hypersonics(10)
-                        },
-                        {
-                            name: "LIGHT WALLBREAKER",
-                            eCost: tiefighters(4) + hypersonics(6)
-                        },
-                        {
-                            name: "WALLBREAKER",
-                            eCost: tiefighters(10)
-                        }
-                    ]
+                    variants: compiledCarriers
                 }
             },
             {
@@ -2037,7 +2077,7 @@ class Game {
                 if (this.sidebar.inventorySelected && (this.status.moveShips || this.status.isRTF)) {
                     if (this.status.canPlaceObject || (this.sidebar.inventorySelected.place.word == "F" && !this.status.mouseWithinNarrowField)) {
                         if (this.sidebar.inventorySelected.place.word) {
-                            this.place(this.sidebar.inventorySelected.place.word, this.sidebar.inventorySelected.place.activeVariant);
+                            this.place(this.sidebar.inventorySelected.place.word, this.sidebar.inventorySelected.place.variants[this.sidebar.inventorySelected.place.activeVariant - 1].variantID);
                             this.sidebar.inventorySelected.place.activeVariant = 0;
                         }
                         if (this.sidebar.inventorySelected.stack) {

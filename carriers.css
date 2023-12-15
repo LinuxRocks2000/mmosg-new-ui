@@ -1,0 +1,30 @@
+* {
+    margin: 0px;
+    padding: 0px;
+}
+
+body {
+    background-color: teal;
+    font-family: sans-serif;
+}
+
+h1 {
+    font-size: 1.3em;
+    text-align: center;
+}
+
+#carriers {
+    background-color: white;
+    position: absolute;
+    display: inline-block;
+    top: 0px;
+    left: 50%;
+    transform: translate(-50%, 0);
+}
+
+#carriers > div {
+    min-width: 200px;
+    min-height: 100px;
+    background-color: #DDD;
+    margin: 10px;
+}
