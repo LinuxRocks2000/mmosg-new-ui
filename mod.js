@@ -396,7 +396,7 @@ class Sidebar {
                 }
             }
         }
-        this.availability(ctx, "CASTLE PLACEMENT", 779, !parent.status.mouseWithinNarrowField);
+        this.availability(ctx, "CASTLE PLACEMENT", 779, !parent.status.mouseWithinNarrowField || parent.superuser);
         this.availability(ctx, "OBJECT PLACEMENT", 803, parent.status.canPlaceObject || parent.status.placeAroundFort);
 
         Object.values(parent.objects).forEach(obj => {
@@ -558,7 +558,7 @@ class Sidebar {
     clickies(parent) {
         this.inventorySelected = undefined;
         parent.inventory.forEach(item => {
-            if (item.hovered && (parent.status.moveShips || parent.status.isRTF)) {
+            if (item.hovered && (parent.status.moveShips || parent.status.isRTF || parent.superuser)) {
                 if (item.selected) {
                     item.selected = false;
                 }
@@ -771,7 +771,7 @@ class GameObject {
         }
         if (this.upgrades.indexOf("s2") != -1) {
             if (Math.abs(this.x - this.xOld) < 0.5 && Math.abs(this.y - this.yOld) < 0.5) {
-                if (!this.isOurs && !master.status.moveShips) {
+                if (!this.isOurs && !master.status.moveShips && !master.superuser) {
                     return;
                 }
             }
@@ -870,9 +870,12 @@ class GameObject {
                 var transformed = master.transformPoint(-w / 2, -h / 2);
                 ctx.drawImage(ctx.canvas, transformed[0], transformed[1], w * master.zoomLevel, h * master.zoomLevel, -w / 2, -h / 2, w, h);
                 ctx.filter = "none";
+                ctx.fillStyle = "black";
+                ctx.globalAlpha = 0.3;
             }
-            ctx.fillStyle = "black";
-            ctx.globalAlpha = 0.3;
+            else {
+                ctx.fillStyle = "#555";
+            }
             ctx.fillRect(-w / 2, -h / 2, w, h);
             ctx.globalAlpha = 1;
         }
@@ -906,7 +909,7 @@ class GameObject {
             ctx.lineWidth = 1;
             ctx.strokeRect(this.box[0], this.box[1], this.box[2] - this.box[0], this.box[3] - this.box[1]);
         }
-        if (this.isOurs && this.isEditable) {
+        if ((this.isOurs || master.superuser) && this.isEditable) {
             ctx.strokeStyle = "green";
             ctx.fillStyle = "green";
             if (this.isHovered) {
@@ -1034,7 +1037,7 @@ class GameObject {
 
     interact(game) {
         this.isOurs = game.mine.indexOf(this.id) != -1;
-        if (!game.status.moveShips && !game.status.isRTF) {
+        if (!game.status.moveShips && !game.status.isRTF && !game.superuser) {
             this.editState = 0;
             game.locked = false;
         }
@@ -1057,7 +1060,7 @@ class GameObject {
     }
 
     click(game) { // called on EVERY CLICK, not just clicks where it's hovered
-        if (!game.status.moveShips && !game.status.isRTF) {
+        if (!game.status.moveShips && !game.status.isRTF && !game.superuser) {
             return;
         }
         if (this.editState == 1) {
@@ -1100,6 +1103,11 @@ class Game {
         this.rtf = connection.sendHandle("PilotRTF");
         this.chat = connection.sendHandle("Chat");
         this.shop = connection.sendHandle("Shop");
+        this.doGodReset = connection.sendHandle("GodReset");
+        this.doGodNuke = connection.sendHandle("GodNuke");
+        this.doGodFlip = connection.sendHandle("GodFlip");
+        this.doGodDisconnect = connection.sendHandle("GodDisconnect");
+        this.doGodDelete = connection.sendHandle("GodDelete");
         this.setReadyState = connection.sendHandle("ReadyState");
         this.setListeners(connection);
         setInterval(() => {
@@ -1269,6 +1277,42 @@ class Game {
                     name: "MOFARD",
                     data: `T h n h T
                            T h n h T`
+                },
+                {
+                    name: "NULL",
+                    data: ""
+                },
+                {
+                    name: "NULL",
+                    data: ""
+                },
+                {
+                    name: "NULL",
+                    data: ""
+                },
+                {
+                    name: "NULL",
+                    data: ""
+                },
+                {
+                    name: "NULL",
+                    data: ""
+                },
+                {
+                    name: "NULL",
+                    data: ""
+                },
+                {
+                    name: "NULL",
+                    data: ""
+                },
+                {
+                    name: "NULL",
+                    data: ""
+                },
+                {
+                    name: "NULL",
+                    data: ""
                 }
             ]);
         }
@@ -1629,6 +1673,11 @@ class Game {
         connection.setOnMessage("UnCarry", (carried) => {
             this.objects[carried].carried = false;
         });
+        connection.setOnMessage("YouAreGod", () => {
+            this.superuser = true;
+            this.status.wallsRemaining = Infinity;
+            this.status.wallsTurn = Infinity;
+        });
     }
 
     attemptWall(x, y) {
@@ -1693,7 +1742,10 @@ class Game {
     renderGameboard(interpolator, zoomLevel) {
         this.ctx.fillStyle = "#111111";
         this.ctx.save();
-        if (this.bgCall) {
+        if (this.superuser) {
+            this.ctx.drawImage(document.getElementById("god"), 0, 0, window.innerWidth, window.innerHeight);
+        }
+        else if (this.bgCall) {
             this.bgCall(this.cX - window.innerWidth / 2, this.cY - window.innerHeight / 2);
             this.ctx.drawImage(document.getElementById("background"), 0, 0); //offx, offy);
         }
@@ -1753,7 +1805,7 @@ class Game {
             return true;
         }
         if (this.sidebar.inventorySelected) {
-            if (this.sidebar.inventorySelected.place.word == "F" && !this.status.mouseWithinNarrowField) {
+            if (this.sidebar.inventorySelected.place.word == "F" && !this.status.mouseWithinNarrowField && !this.superuser) {
                 return false;
             }
             if (!this.status.canPlaceObject && !this.fortPlace()) {
@@ -1772,7 +1824,7 @@ class Game {
         this.ctx.fillText("SCORE", window.innerWidth - 18, 9 + 15.6 / 2);
         this.ctx.font = "16px 'Chakra Petch'";
         this.ctx.fillStyle = "#CBCAFF";
-        this.ctx.fillText(this.status.score, window.innerWidth - 18, 28 + 6 + 21 / 2);
+        this.ctx.fillText(this.superuser ? "∞" : this.status.score, window.innerWidth - 18, 28 + 6 + 21 / 2);
         this.ctx.fillText(this.a2a, window.innerWidth - 18, 28 + 6 + 21 * 2);
         this.ctx.fillStyle = "white";
         this.ctx.textAlign = "left";
@@ -1928,6 +1980,7 @@ class Game {
             });
             this.status.canPlaceObject |= this.fortPlace();
             this.status.canPlaceObject &= this.status.moveShips || this.status.isRTF; // you can only place stuff during strat mode
+            this.status.canPlaceObject |= this.superuser;
         }
     }
 
@@ -1935,6 +1988,9 @@ class Game {
         var cTime = window.performance.now();
         this.status.FPS = 1000/(cTime - this.lastFrameTime);
         this.lastFrameTime = cTime;
+        if (this.superuser) {
+            this.status.score = Infinity;
+        }
         this.doMouse();
         Object.values(this.objects).forEach((item) => {
             item.bodyHovered = (this.gameX > item.x         - 25 && this.gameX < item.x         + 25 && this.gameY > item.y         - 25 && this.gameY < item.y         + 25)
@@ -2077,7 +2133,7 @@ class Game {
         }
         else {
             if (this.status.hasPlacedCastle) {
-                if (this.sidebar.inventorySelected && (this.status.moveShips || this.status.isRTF)) {
+                if (this.sidebar.inventorySelected && (this.status.moveShips || this.status.isRTF || this.superuser)) {
                     if (this.status.canPlaceObject || (this.sidebar.inventorySelected.place.word == "F" && !this.status.mouseWithinNarrowField)) {
                         if (this.sidebar.inventorySelected.place.word) {
                             this.place(this.sidebar.inventorySelected.place.word, this.sidebar.inventorySelected.place.activeVariant ? this.sidebar.inventorySelected.place.variants[this.sidebar.inventorySelected.place.activeVariant - 1].variantID : 0);
@@ -2094,13 +2150,13 @@ class Game {
                 }
                 else {
                     Object.values(this.objects).forEach(item => {
-                        if (item.isOurs) {
+                        if (item.isOurs || this.superuser) {
                             item.click(this);
                         }
                     });
                 }
             }
-            else if (!this.status.mouseWithinNarrowField) {
+            else if (!this.status.mouseWithinNarrowField || this.superuser) {
                 if (!this.status.spectating) {
                     this.place("c");
                     this.status.hasPlacedCastle = true;
@@ -2115,6 +2171,50 @@ class Game {
 
     enterMoveShips() {
         this.status.wallsRemaining = this.status.wallsTurn;
+    }
+
+    godDelete() {
+        if (this.superuser) {
+            Object.values(this.objects).forEach(obj => {
+                if (obj.bodyHovered) {
+                    this.doGodDelete(obj.id);
+                }
+            });
+        }
+    }
+
+    godReset() { 
+        if (this.superuser) {
+            if (confirm("Really reset the server?")) {
+                this.doGodReset();
+            }
+        }
+    }
+
+    godNuke() {
+        if (this.superuser) {
+            Object.values(this.objects).forEach(obj => {
+                if (obj.bodyHovered) {
+                    this.doGodNuke(obj.banner);
+                }
+            });
+        }
+    }
+
+    godFlip() {
+        if (this.superuser) {
+            this.doGodFlip();
+        }
+    }
+
+    godDisconnect() {
+        if (this.superuser) {
+            Object.values(this.objects).forEach(obj => {
+                if (obj.bodyHovered) {
+                    this.doGodDisconnect(obj.banner);
+                }
+            });
+        }
     }
 }
 
@@ -2228,6 +2328,21 @@ async function play() {
                     game.keysDown[evt.key] = false;
                     if (evt.key == "i") {
                         game.sidebar.isInventory = !game.sidebar.isInventory;
+                    }
+                    if (evt.key == "Delete") {
+                        game.godDelete();
+                    }
+                    if (evt.key == "D") {
+                        game.godDisconnect();
+                    }
+                    if (evt.key == "R") {
+                        game.godReset();
+                    }
+                    if (evt.key == "N") {
+                        game.godNuke();
+                    }
+                    if (evt.key == "F") { 
+                        game.godFlip();
                     }
                     if (evt.key == "e" && game.status.isRTF) {
                         game.air2air();
