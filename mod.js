@@ -1108,6 +1108,7 @@ class Game {
         this.doGodFlip = connection.sendHandle("GodFlip");
         this.doGodDisconnect = connection.sendHandle("GodDisconnect");
         this.doGodDelete = connection.sendHandle("GodDelete");
+        this.doGodBless = connection.sendHandle("GodBless");
         this.setReadyState = connection.sendHandle("ReadyState");
         this.setListeners(connection);
         setInterval(() => {
@@ -2216,6 +2217,16 @@ class Game {
             });
         }
     }
+
+    godBless() {
+        if (this.superuser) {
+            Object.values(this.objects).forEach(obj => {
+                if (obj.bodyHovered) {
+                    this.doGodBless(obj.banner);
+                }
+            });
+        }
+    }
 }
 
 
@@ -2340,6 +2351,9 @@ async function play() {
                     }
                     if (evt.key == "N") {
                         game.godNuke();
+                    }
+                    if (evt.key == "B") {
+                        game.godBless();
                     }
                     if (evt.key == "F") { 
                         game.godFlip();
