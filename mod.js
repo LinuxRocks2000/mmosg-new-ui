@@ -1830,7 +1830,9 @@ class Game {
     }
 
     drawStatus(interpolator) {
-        this.drawSpecialItem(document.getElementById("chaliceofapricots"), 0, "The Chalice of Apricots grants you the power of God!");
+        if (this.superuser) {
+            this.drawSpecialItem(document.getElementById("chaliceofapricots"), 0, "The Chalice of Apricots grants you the power of God!");
+        }
         this.ctx.fillStyle = "#555555";
         this.ctx.font = "12px 'Chakra Petch'";
         this.ctx.textAlign = "left";
