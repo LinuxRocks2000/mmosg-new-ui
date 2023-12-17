@@ -1744,7 +1744,9 @@ class Game {
         this.ctx.fillStyle = "#111111";
         this.ctx.save();
         if (this.superuser) {
+            this.ctx.globalAlpha = 0.1;
             this.ctx.drawImage(document.getElementById("god"), 0, 0, window.innerWidth, window.innerHeight);
+            this.ctx.globalAlpha = 1;
         }
         else if (this.bgCall) {
             this.bgCall(this.cX - window.innerWidth / 2, this.cY - window.innerHeight / 2);
@@ -1816,7 +1818,19 @@ class Game {
         return false;
     }
 
+    drawSpecialItem(item, rowPos, explanation) {
+        this.ctx.drawImage(item, 10 + rowPos * 70, window.innerHeight - 64);
+        if (this.mouseX > 10 + rowPos * 70 && this.mouseX < 80 + rowPos * 70 && this.mouseY > window.innerHeight - 80) {
+            this.ctx.fillStyle = "orange";
+            this.ctx.font = "10px 'Chakra Petch'";
+            this.ctx.textAlign = "right";
+            this.ctx.fillText(explanation, window.innerWidth, window.innerHeight - 2);
+            this.ctx.textAlign = "left";
+        }
+    }
+
     drawStatus(interpolator) {
+        this.drawSpecialItem(document.getElementById("chaliceofapricots"), 0, "The Chalice of Apricots grants you the power of God!");
         this.ctx.fillStyle = "#555555";
         this.ctx.font = "12px 'Chakra Petch'";
         this.ctx.textAlign = "left";
