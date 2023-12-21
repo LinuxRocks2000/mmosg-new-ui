@@ -132,28 +132,39 @@ class Sidebar {
         ctx.fill();
         parent.inventory.forEach((item, i) => {
             var rootY = 57 + i * inventoryObjectHeight;
-            var frCost = item.cost + (item.place.activeVariant ? item.place.variants[item.place.activeVariant - 1].eCost : 0);
-            if (item.selected) {
-                ctx.fillStyle = "#440000";
-                ctx.fillRect(0, rootY, 266, inventoryObjectHeight);
+            if (item.arcadeGame) {
+                ctx.font = "18px Papyrus";
+                ctx.fillStyle = "red";
+                ctx.fillText(item.name, 30, rootY + 18);
+                ctx.font = "12px Papyrus";
+                ctx.fillStyle = "skyblue";
+                ctx.fillText(item.descriptionL1, 30, rootY + 36);
+                ctx.fillText(item.descriptionL2, 30, rootY + 48);
             }
-            ctx.font = "14px 'Chakra Petch'";
-            ctx.fillStyle = "white";
-            ctx.textAlign = "left";
-            ctx.fillText(item.name, 30, rootY + 14);
-            ctx.fillStyle = "white";
-            var width = ctx.measureText(frCost + "").width;
-            ctx.fillRect(246 - width, rootY, width, 18);
-            ctx.fillStyle = "black";
-            ctx.fillText(frCost, 246 - width, rootY + 14);
-            ctx.fillStyle = "blue";
-            ctx.font = "10px 'Chakra Petch'";
-            ctx.fillText(item.descriptionL1, 20, rootY + 40);
-            ctx.fillText(item.descriptionL2, 20, rootY + 50);
-            ctx.fillStyle = "green";
-            ctx.fillText("VARIANT: " + (item.place.activeVariant ? item.place.variants[item.place.activeVariant - 1].name : "N/A"), 20, rootY + 60);
+            else {
+                var frCost = item.cost + (item.place.activeVariant ? item.place.variants[item.place.activeVariant - 1].eCost : 0);
+                if (item.selected) {
+                    ctx.fillStyle = "#440000";
+                    ctx.fillRect(0, rootY, 266, inventoryObjectHeight);
+                }
+                ctx.font = "14px 'Chakra Petch'";
+                ctx.fillStyle = "white";
+                ctx.textAlign = "left";
+                ctx.fillText(item.name, 30, rootY + 14);
+                ctx.fillStyle = "white";
+                var width = ctx.measureText(frCost + "").width;
+                ctx.fillRect(246 - width, rootY, width, 18);
+                ctx.fillStyle = "black";
+                ctx.fillText(frCost, 246 - width, rootY + 14);
+                ctx.fillStyle = "blue";
+                ctx.font = "10px 'Chakra Petch'";
+                ctx.fillText(item.descriptionL1, 20, rootY + 40);
+                ctx.fillText(item.descriptionL2, 20, rootY + 50);
+                ctx.fillStyle = "green";
+                ctx.fillText("VARIANT: " + (item.place.activeVariant ? item.place.variants[item.place.activeVariant - 1].name : "N/A"), 20, rootY + 60);
+            }
             item.hovered = false;
-            if (parent.status.score >= frCost && item.stack != 0) {
+            if ((parent.status.score >= frCost && item.stack != 0) || item.arcadeGame) {
                 if (parent.mouseX < 266 && parent.mouseY + parent.sideScroll > rootY && parent.mouseY + parent.sideScroll < rootY + inventoryObjectHeight) {
                     ctx.lineWidth = 1;
                     ctx.strokeStyle = "white";
@@ -454,7 +465,7 @@ class Sidebar {
             this.drawUpgradeBar(parent, "g", "GUN", (parent.castle.highestUpgradeTier('b') + 1)/4, parent.castle.highestUpgradeTier('b')/4, 505, parent.minimalistic);
             this.drawUpgradeBar(parent, "s", "CLOAKING", (parent.castle.highestUpgradeTier('s') + 1)/2, (parent.castle.highestUpgradeTier('s'))/2, 539, parent.minimalistic);
             this.drawUpgradeBar(parent, "f", "DRIVE", (parent.castle.highestUpgradeTier('f') + 1)/3, parent.castle.highestUpgradeTier('f')/3, 573, parent.minimalistic);
-            this.drawUpgradeBar(parent, "h", "HEALTH", (parent.castle.highestUpgradeTier('h') + 1)/4, parent.castle.highestUpgradeTier('h')/4, 607, parent.minimalistic);
+            this.drawUpgradeBar(parent, "h", "HEALTH", (parent.castle.highestUpgradeTier('h') + 1) / 4, parent.castle.highestUpgradeTier('h') / 4, 607, parent.minimalistic);
         }
     }
 
@@ -558,7 +569,37 @@ class Sidebar {
     clickies(parent) {
         this.inventorySelected = undefined;
         parent.inventory.forEach(item => {
-            if (item.hovered && (parent.status.moveShips || parent.status.isRTF || parent.superuser)) {
+            if (item.arcadeGame) {
+                var minigame = window.open(item.arcadeGame.playGameURL);
+                let m = (event) => {
+                    if (event.data.goal == "MINIGAME_RESULT") {
+                        if (event.data.output == "WIN") {
+                            if (item.arcadeGame.win) {
+                                item.arcadeGame.win();
+                                parent.isMinigame = false;
+                            }
+                        }
+                        else if (event.data.output == "LOSE") {
+                            if (item.arcadeGame.lose) {
+                                item.arcadeGame.lose();
+                            }
+                            location.reload();
+                        }
+                        window.removeEventListener("message", m);
+                    }
+                    else if (event.data.goal == "IM_READY") {
+                        parent.isMinigame = true;
+                        minigame.postMessage({
+                            goal: "LAUNCH_MINIGAME",
+                            constraints: {
+                                winScore: 300
+                            }
+                        }, "*");
+                    }
+                };
+                window.addEventListener("message", m);
+            }
+            else if (item.hovered && (parent.status.moveShips || parent.status.isRTF || parent.superuser)) {
                 if (item.selected) {
                     item.selected = false;
                 }
@@ -651,6 +692,7 @@ class GameObject {
         this.parent = parent;
         this.mouseIsDown = false;
         this.rightMouse = false;
+        this.carrying = [];
     }
 
     highestUpgradeTier(upgrade) {
@@ -833,11 +875,29 @@ class GameObject {
             ctx.drawImage(image, -8, -8);
         }
         else if (this.type == "K") {
-            ctx.fillStyle = "#555";
-            for (var i = 0; i < 6; i++) {
-                ctx.fillRect(-w / 2 + i * 80, -h / 2, 10, h);
+            var isGreenArm = true;
+            if (this.carrying.length == 10) {
+                this.carrying.forEach(item => {
+                    if (master.objects[item].type != "G") {
+                        console.log(master.objects[item]);
+                        isGreenArm = false;
+                    }
+                });
             }
-            ctx.fillRect(-w/2, -5, w, 10);
+            else {
+                isGreenArm = false;
+            }
+            if (isGreenArm) {
+                ctx.fillStyle = "green";
+                ctx.fillRect(-w / 2, -h / 2, w, h);
+            }
+            else {
+                ctx.fillStyle = "#555";
+                for (var i = 0; i < 6; i++) {
+                    ctx.fillRect(-w / 2 + i * 80, -h / 2, 10, h);
+                }
+                ctx.fillRect(-w / 2, -5, w, 10);
+            }
         }
         else if (this.type == "t") {
             ctx.rotate(Math.PI / 2);
@@ -1203,6 +1263,7 @@ class Game {
         this.keysDown = {};
         this.a2a = 0;
         this.ponged = false;
+        this.leprechaun = 0;
         this.seekTime = 0;
         if (DEBUG) {
             this.deletePoints = [];
@@ -1670,14 +1731,23 @@ class Game {
             this.objects[carried].goalPos.x = this.objects[carried].x;
             this.objects[carried].goalPos.y = this.objects[carried].y;
             this.objects[carried].goalPos.a = this.objects[carried].angle;
+            this.objects[carrier].carrying.push(carried);
         });
         connection.setOnMessage("UnCarry", (carried) => {
+            this.objects[carried].carrier.carrying.splice(this.objects[carried].carrier.carrying.indexOf(carried), 1);
             this.objects[carried].carried = false;
         });
         connection.setOnMessage("YouAreGod", () => {
             this.superuser = true;
             this.status.wallsRemaining = Infinity;
             this.status.wallsTurn = Infinity;
+        });
+        connection.setOnMessage("Leprechaun", () => {
+            screen("leprechaun");
+            setTimeout(() => {
+                screen("gameui");
+            }, 3000);
+            this.leprechaun = 1;
         });
     }
 
@@ -1725,8 +1795,21 @@ class Game {
     }
 
     _main() {
-        this.interactionLoop();
-        this.renderLoop();
+        if (this.isMinigame) {
+            this.ctx.fillStyle = "black";
+            this.ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+            this.ctx.fillStyle = "white";
+            this.ctx.textAlign = "center";
+            this.ctx.font = "32px sans-serif";
+            this.ctx.fillText("Beat The Minigame To Continue", window.innerWidth / 2, window.innerHeight / 2);
+            this.ctx.font = "24px sans-serif";
+            this.ctx.fillText("if you die in the minigame, you die in MMOSG!", window.innerWidth / 2, window.innerHeight / 2 + 32);
+            this.ctx.textAlign = "left";
+        }
+        else {
+            this.interactionLoop();
+            this.renderLoop();
+        }
         if (!this.harikari) {
             requestAnimationFrame(() => { this._main() });
         }
@@ -2085,6 +2168,69 @@ class Game {
         this.sideScroll = clamp(0, this.sideScroll, this.sidebar.scrollHeight - window.innerHeight + 56)
         if (window.performance.now() - this.seekTime > 6000) {
             this.seeking = undefined;
+        }
+        if (this.leprechaun == 1 && !this.status.moveShips) {
+            if (!this.lepreTimer) {
+                this.lepreTimer = 500;
+                this.lepreMax = 500;
+            }
+            this.lepreTimer--;
+            if (this.lepreTimer <= 0) {
+                var pick = Math.floor(this.mine.length * Math.random()) + 1;
+                var i = 0;
+                var noneAreEditable = true;
+                while (pick > 0) {
+                    if (this.objects[this.mine[i % this.mine.length]].isEditable) {
+                        pick--;
+                        noneAreEditable = false;
+                    }
+                    i++;
+                    if (i == this.mine.length - 1) {
+                        if (noneAreEditable) {
+                            break;
+                        }
+                    }
+                }
+                if (!noneAreEditable) {
+                    var lepreWeppon = this.objects[this.mine[i % this.mine.length]];
+                    if (Math.random() < 0.7) {
+                        lepreWeppon.goalPos.x = this.castle.x;
+                        lepreWeppon.goalPos.y = this.castle.y;
+                    }
+                    else {
+                        lepreWeppon.goalPos.x = Math.random() * this.gamesize;
+                        lepreWeppon.goalPos.y = Math.random() * this.gamesize;
+                    }
+                    lepreWeppon.goalPos.a = Math.random() * 4;
+                    lepreWeppon.goalPos.hasChanged = true;
+                    this.lepreMax *= 0.95;
+                    this.lepreTimer = this.lepreMax;
+                    if (this.lepreMax < 60) { // ~40 lepreiters
+                        this.leprechaun = 2;
+                        console.log("You pass.");
+                        this.inventory.push({
+                            arcadeGame: true,
+                            name: "Strategy Game Classic",
+                            descriptionL1: "Play the classic strategy game!",
+                            descriptionL2: "",
+                            arcade: {
+                                playGameURL: "http://localhost:8000"
+                            }
+                        });
+                    }
+                }
+            }
+        }
+        else if (this.leprechaun == 2) {
+            /*this.inventory.push({
+                arcadeGame: true,
+                name: "Strategy Game Classic",
+                descriptionL1: "Play the classic strategy game!",
+                descriptionL2: "",
+                arcade: {
+                    playGameURL: "http://localhost:8000"
+                }
+            });*/
         }
     }
 

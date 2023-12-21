@@ -228,6 +228,11 @@ img {
     color: white;
 }
 
+@font-face {
+    font-family: "Papyrus";
+    src: url("res/papyrus.ttf");
+}
+
 #chat-messages {
     font-family: 'Chakra Petch';
     font-size: 12px;
