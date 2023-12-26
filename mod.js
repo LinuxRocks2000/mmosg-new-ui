@@ -904,7 +904,7 @@ class GameObject {
             ctx.drawImage(document.querySelector("img#tie"), -31, -23);
             ctx.rotate(-Math.PI / 2);
         }
-        else if (this.type == "h") {
+        else if (this.type == "h" || this.type == "H") {
             ctx.rotate(Math.PI / 2);
             ctx.drawImage(document.querySelector("img#missile"), -13, -22);
             var dX = this.goalPos.x - this.x;
@@ -912,7 +912,12 @@ class GameObject {
             dX *= dX;
             dY *= dY;
             if (dX + dY > 25) {
-                master.drawThruster(0, 22, 20, 20, 15);
+                if (this.type == "H") {
+                    master.drawThruster(0, 22, 20, 20, 15, "rgba(255, 0, 0, 1)", "rgba(255, 0, 0, 0)");
+                }
+                else {
+                    master.drawThruster(0, 22, 20, 20, 15);
+                }
             }
             ctx.rotate(-Math.PI / 2);
         }
@@ -1171,6 +1176,8 @@ class Game {
         this.doGodBless = connection.sendHandle("GodBless");
         this.setReadyState = connection.sendHandle("ReadyState");
         this.setListeners(connection);
+        this.lasers = [];
+        this.stagingLasers = [];
         setInterval(() => {
             this.status.online = this.ponged;
             doPing();
@@ -1430,6 +1437,15 @@ class Game {
                 }
             },
             {
+                name: "LASER MISSLE",
+                cost: 30,
+                descriptionL1: "Missile that shoots a sustained laser beam.",
+                descriptionL2: "Currently in development!",
+                place: {
+                    word: "H"
+                }
+            },
+            {
                 name: "SNIPER",
                 cost: 30,
                 descriptionL1: "Very fast low-profile cloaked fighter.",
@@ -1575,6 +1591,8 @@ class Game {
             this.ponged = true;
         });
         connection.setOnMessage("Tick", (counter, mode) => {
+            this.lasers = this.stagingLasers;
+            this.stagingLasers = [];
             this.status.counter = counter;
             this.ponged = true;
             if (mode == 2) { // 0 = play, 1 = strat, 2 = waiting
@@ -1734,8 +1752,10 @@ class Game {
             this.objects[carrier].carrying.push(carried);
         });
         connection.setOnMessage("UnCarry", (carried) => {
-            this.objects[carried].carrier.carrying.splice(this.objects[carried].carrier.carrying.indexOf(carried), 1);
-            this.objects[carried].carried = false;
+            if (this.objects[carried]) {
+                this.objects[carried].carrier.carrying.splice(this.objects[carried].carrier.carrying.indexOf(carried), 1);
+                this.objects[carried].carried = false;
+            }
         });
         connection.setOnMessage("YouAreGod", () => {
             this.superuser = true;
@@ -1748,6 +1768,9 @@ class Game {
                 screen("gameui");
             }, 3000);
             this.leprechaun = 1;
+        });
+        connection.setOnMessage("CastLaser", (x1, y1, x2, y2, intensity) => {
+            this.stagingLasers.push([x1, y1, x2, y2, intensity]);
         });
     }
 
@@ -1775,11 +1798,11 @@ class Game {
         }
     }
 
-    drawThruster(rX, rY, w1, h, w2) {
+    drawThruster(rX, rY, w1, h, w2, color1 = "rgba(160, 192, 255, 1)", color2 = 'rgba(160, 192, 255, 0)') {
         var pos = w2 * (Math.random() - 0.5);
         var grd = this.ctx.createLinearGradient(rX, rY, rX, rY + h); // lovingly yoinked from https://github.com/landgreen/planetesimals
-        grd.addColorStop(0, 'rgba(160, 192, 255, 1)');
-        grd.addColorStop(1, 'rgba(160, 192, 255, 0)');
+        grd.addColorStop(0, color1);
+        grd.addColorStop(1, color2);
         this.ctx.fillStyle = grd;
         this.ctx.beginPath();
         this.ctx.moveTo(rX - w1 / 2, rY);
@@ -1849,6 +1872,13 @@ class Game {
         Object.values(this.objects).forEach((item) => {
             item.draw(this, interpolator);
         });
+        this.ctx.strokeStyle = "red";
+        this.ctx.beginPath();
+        this.lasers.forEach(laser => {
+            this.ctx.moveTo(laser[0], laser[1]);
+            this.ctx.lineTo(laser[2], laser[3]);
+        });
+        this.ctx.stroke();
         if (DEBUG) {
             this.deletePoints.forEach(item => {
                 this.ctx.beginPath();
@@ -2334,6 +2364,10 @@ class Game {
 
     enterMoveShips() {
         this.status.wallsRemaining = this.status.wallsTurn;
+        if (this.status.isRTF) {
+            this.status.isReady = true;
+            this.setReadyState(true);
+        }
     }
 
     godDelete() {
@@ -2525,6 +2559,12 @@ async function play() {
                     }
                     if (evt.key == "r" && game.status.isRTF) {
                         game.accurateRTF = !game.accurateRTF;
+                    }
+                    if (game.superuser) {
+                        if (evt.key == "t") {
+                            game.place("t");
+                            game.cY += 30;
+                        }
                     }
                     if (!isNaN(evt.key)) {
                         var variant = evt.key - 0;
