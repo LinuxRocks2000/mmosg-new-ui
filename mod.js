@@ -1223,6 +1223,7 @@ class Game {
             wait: true,
             score: 0,
             counter: 0, // Set by ticks
+            abscounter : 0, // absolute and universal
             tickTime: 1000 / 30, // Number of milliseconds between ticks or !s; this is adjusted based on real-time data.
             lastTickTime: -1,
             canPlaceObject: false, // if the mouse is close to the home castle with 400 tolerance
@@ -1590,7 +1591,8 @@ class Game {
         connection.setOnMessage("Pong", () => {
             this.ponged = true;
         });
-        connection.setOnMessage("Tick", (counter, mode) => {
+        connection.setOnMessage("Tick", (counter, abscounter, mode) => {
+            this.status.abscounter = abscounter;
             this.lasers = this.stagingLasers;
             this.stagingLasers = [];
             this.status.counter = counter;
@@ -1662,7 +1664,7 @@ class Game {
         });
         connection.setOnMessage("SetScore", (score) => {
             this.status.score = score;
-        });
+        });/*
         connection.setOnMessage("MoveObjectFull", (id, x, y, a, w, h) => {
             var obj = this.objects[id];
             if (!obj) {
@@ -1679,6 +1681,22 @@ class Game {
             obj.w = w;
             obj.h = h;
             obj.didMove = true;
+        });*/
+        connection.setOnMessage("TrajectoryUpdate", (id, absframe, x, y, xv, yv) => {
+            this.objects[id].x = x;
+            this.objects[id].y = y;
+            this.objects[id].xv = xv;
+            this.objects[id].yv = yv;
+            this.objects[id].framestart = absframe;
+        });
+        connection.setOnMessage("UpdateObject", (id, angle, w, h) => {
+            var obj = this.objects[id];
+            obj.aOld = obj.a;
+            obj.wOld = obj.w;
+            obj.hOld = obj.h;
+            obj.a = angle;
+            obj.h = h;
+            obj.w = w;
         });
         connection.setOnMessage("A2A", count => {
             this.a2a = count;
