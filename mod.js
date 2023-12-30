@@ -693,6 +693,9 @@ class GameObject {
         this.mouseIsDown = false;
         this.rightMouse = false;
         this.carrying = [];
+        this.xv = 0;
+        this.yv = 0;
+        this.framestart = 0;
     }
 
     highestUpgradeTier(upgrade) {
@@ -768,15 +771,16 @@ class GameObject {
     }
 
     interpolate(value, property) {
+        value = value % 1;
         return this[property] * value + this[property + "Old"] * (1 - value);
     }
 
     getX(interpolator) {
-        return this.interpolate(interpolator, "x");
+        return this.x + (interpolator - this.framestart) * this.xv;
     }
 
     getY(interpolator) {
-        return this.interpolate(interpolator, "y");
+        return this.y + (interpolator - this.framestart) * this.yv;
     }
 
     getA(interpolator) {
@@ -1515,6 +1519,15 @@ class Game {
                 }
             },
             {
+                name: "LASER TURRET",
+                cost: 200,
+                descriptionL1: "A turret that fires a laser!",
+                descriptionL2: "",
+                place: {
+                    word: "L"
+                }
+            },
+            {
                 name: "NUKE",
                 cost: 300,
                 descriptionL1: "Very fast well-controlled missile with a",
@@ -1787,8 +1800,8 @@ class Game {
             }, 3000);
             this.leprechaun = 1;
         });
-        connection.setOnMessage("CastLaser", (x1, y1, x2, y2, intensity) => {
-            this.stagingLasers.push([x1, y1, x2, y2, intensity]);
+        connection.setOnMessage("CastLaser", (x1, y1, x2, y2, intensity, type) => {
+            this.stagingLasers.push([x1, y1, x2, y2, intensity, String.fromCharCode(type)]);
         });
     }
 
@@ -1890,13 +1903,26 @@ class Game {
         Object.values(this.objects).forEach((item) => {
             item.draw(this, interpolator);
         });
-        this.ctx.strokeStyle = "red";
-        this.ctx.beginPath();
         this.lasers.forEach(laser => {
+            if (laser[5] == 'R') {
+                this.ctx.strokeStyle = "red";
+                this.ctx.globalAlpha = 0.5;
+                this.ctx.lineWidth = 20;
+                this.ctx.beginPath();
+                this.ctx.moveTo(laser[0], laser[1]);
+                this.ctx.lineTo(laser[2], laser[3]);
+                this.ctx.stroke();
+            }
+            else {
+                this.ctx.strokeStyle = "red";
+            }
+            this.ctx.globalAlpha = 1;
+            this.ctx.lineWidth = 1;
+            this.ctx.beginPath();
             this.ctx.moveTo(laser[0], laser[1]);
             this.ctx.lineTo(laser[2], laser[3]);
+            this.ctx.stroke();
         });
-        this.ctx.stroke();
         if (DEBUG) {
             this.deletePoints.forEach(item => {
                 this.ctx.beginPath();
@@ -2060,18 +2086,19 @@ class Game {
     renderLoop() { // Is called as much as possible; draws things and does smooth rendering
         this.ctx.fillStyle = "rgb(0, 0, 25)";
         var interpolator = (window.performance.now() - this.status.lastTickTime) / this.status.tickTime;
-        if (!INTERPOLATE) {
-            interpolator = 1; // not 0, because then it'd be a frame behind at all times
+        var absInterpolator = this.status.abscounter + interpolator;
+        if (!INTERPOLATE || this.status.moveShips) {
+            absInterpolator = this.status.abscounter + 1; // add 1 to stay current
         }
         if (interpolator > 1) { // if it's "glitching"
             //interpolator = 1;
         }
         if (this.status.isRTF && !this.status.moveShips && !this.status.wait) {
-            this.cX = this.castle.getX(interpolator) * this.zoomLevel;
-            this.cY = this.castle.getY(interpolator) * this.zoomLevel;
+            this.cX = this.castle.getX(absInterpolator) * this.zoomLevel;
+            this.cY = this.castle.getY(absInterpolator) * this.zoomLevel;
         }
         this.ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
-        this.renderGameboard(interpolator, this.zoomLevel);
+        this.renderGameboard(absInterpolator, this.zoomLevel);
         this.renderUI(interpolator);
         if (this.crt) {
             this.crt();
