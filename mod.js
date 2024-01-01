@@ -1476,6 +1476,15 @@ class Game {
                 }
             },
             {
+                name: "ARTILLERY",
+                cost: 50,
+                descriptionL1: "Slow-moving ship that fires artillery bullets that",
+                descriptionL2: "scatter enemy encampments and do a small amount of damage",
+                place: {
+                    word: "A"
+                }
+            },
+            {
                 name: "CARRIER",
                 cost: 80,
                 descriptionL1: "",
