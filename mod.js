@@ -413,8 +413,8 @@ class Sidebar {
         Object.values(parent.objects).forEach(obj => {
             var scaleX = 220 / parent.gamesize;
             var scaleY = 210 / parent.gamesize
-            var convertedX = 46 + obj.x * scaleX;
-            var convertedY = 66 + obj.y * scaleY;
+            var convertedX = 46 + obj.getX(interpolator) * scaleX;
+            var convertedY = 66 + obj.getY(interpolator) * scaleY;
             var convertedW = obj.w * scaleX;
             var convertedH = obj.h * scaleY;
             if (!obj.isCompassVisible()) {
@@ -2019,7 +2019,7 @@ class Game {
         this.ctx.textAlign = "left";
         this.ctx.fillStyle = "#CBCAFF";
         this.ctx.font = "32px 'Chakra Petch'";
-        this.ctx.fillText(this.status.getTimeString(interpolator), 18 + width + 17, 28 + 6 + 21 / 2);
+        this.ctx.fillText(this.status.getTimeString(interpolator % 1), 18 + width + 17, 28 + 6 + 21 / 2);
     }
 
     renderUI(interpolator) {
@@ -2099,7 +2099,7 @@ class Game {
         }
         this.ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
         this.renderGameboard(absInterpolator, this.zoomLevel);
-        this.renderUI(interpolator);
+        this.renderUI(absInterpolator);
         if (this.crt) {
             this.crt();
             //this.ctx.drawImage(document.getElementById("crt"), 0, 0);
