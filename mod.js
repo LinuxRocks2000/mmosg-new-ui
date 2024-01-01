@@ -882,8 +882,7 @@ class GameObject {
             var isGreenArm = true;
             if (this.carrying.length == 10) {
                 this.carrying.forEach(item => {
-                    if (master.objects[item].type != "G") {
-                        console.log(master.objects[item]);
+                    if (master.objects[item] && master.objects[item].type != "G") {
                         isGreenArm = false;
                     }
                 });
