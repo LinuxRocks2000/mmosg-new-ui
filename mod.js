@@ -1182,6 +1182,9 @@ class Game {
         this.setListeners(connection);
         this.lasers = [];
         this.stagingLasers = [];
+        this.explosions = [];
+        this.stagingExplosions = [];
+        // TODO: make these a single stagingEffects[]/effects[] pair.
         setInterval(() => {
             this.status.online = this.ponged;
             doPing();
@@ -1607,7 +1610,9 @@ class Game {
         connection.setOnMessage("Tick", (counter, abscounter, mode) => {
             this.status.abscounter = abscounter;
             this.lasers = this.stagingLasers;
+            this.explosions = this.stagingExplosions;
             this.stagingLasers = [];
+            this.stagingExplosions = [];
             this.status.counter = counter;
             this.ponged = true;
             if (mode == 2) { // 0 = play, 1 = strat, 2 = waiting
@@ -1803,6 +1808,9 @@ class Game {
         connection.setOnMessage("CastLaser", (x1, y1, x2, y2, intensity, type) => {
             this.stagingLasers.push([x1, y1, x2, y2, intensity, String.fromCharCode(type)]);
         });
+        connection.setOnMessage("Blast", (x, y, radius, intensity) => {
+            this.stagingExplosions.push([x, y, radius, intensity]);
+        });
     }
 
     attemptWall(x, y) {
@@ -1861,8 +1869,7 @@ class Game {
             this.ctx.textAlign = "left";
         }
         else {
-            this.interactionLoop();
-            this.renderLoop();
+            this.interactionLoop(this.renderLoop());
         }
         if (!this.harikari) {
             requestAnimationFrame(() => { this._main() });
@@ -1922,6 +1929,12 @@ class Game {
             this.ctx.moveTo(laser[0], laser[1]);
             this.ctx.lineTo(laser[2], laser[3]);
             this.ctx.stroke();
+        });
+        this.explosions.forEach(explosion => {
+            this.ctx.beginPath();
+            this.ctx.arc(explosion[0], explosion[1], explosion[2], 0, Math.PI * 2);
+            this.ctx.fillStyle = "red";
+            this.ctx.fill(); // TODO: make intensity affect the explosion colors
         });
         if (DEBUG) {
             this.deletePoints.forEach(item => {
@@ -2104,6 +2117,7 @@ class Game {
             this.crt();
             //this.ctx.drawImage(document.getElementById("crt"), 0, 0);
         }
+        return absInterpolator;
     }
 
     mouseFieldCheckOnOne(size, obj) {
@@ -2159,7 +2173,7 @@ class Game {
         }
     }
 
-    interactionLoop() { // Is called as much as possible; handles interaction with the user
+    interactionLoop(interpolator) { // Is called as much as possible; handles interaction with the user
         var cTime = window.performance.now();
         this.status.FPS = 1000/(cTime - this.lastFrameTime);
         this.lastFrameTime = cTime;
@@ -2168,9 +2182,11 @@ class Game {
         }
         this.doMouse();
         Object.values(this.objects).forEach((item) => {
-            item.bodyHovered = (this.gameX > item.x         - 25 && this.gameX < item.x         + 25 && this.gameY > item.y         - 25 && this.gameY < item.y         + 25)
+            var x = item.getX(interpolator);
+            var y = item.getY(interpolator);
+            item.bodyHovered = (this.gameX > x              - 25 && this.gameX < x              + 25 && this.gameY > y              - 25 && this.gameY < y              + 25)
             item.isHovered = item.bodyHovered ||
-                               (this.gameX > item.goalPos.x - 5  && this.gameX < item.goalPos.x + 5  && this.gameY > item.goalPos.y - 5  && this.gameY < item.goalPos.y + 5);
+                               (this.gameX > item.goalPos.x - 10 && this.gameX < item.goalPos.x + 10 && this.gameY > item.goalPos.y - 10 && this.gameY < item.goalPos.y + 10);
             item.interact(this);
 
             var dx = this.gameX - item.x;
