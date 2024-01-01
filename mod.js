@@ -1,7 +1,7 @@
 const DEBUG = false;
 const BARE = false;
 const INTERPOLATE = true;
-const passive = ["w", "T", "m", "S", "G", "g"]; // types that can be legally placed near forts
+const passive = ["w", "T", "m", "S", "G", "g", "L", "F"]; // types that can be legally placed near forts
 
 function clamp(min, val, max) {
     if (val < min) {
