@@ -2144,6 +2144,15 @@ class Game {
         return false;
     }
 
+    mouseFieldCheckT(size, types) {
+        Object.values(this.objects).forEach(item => {
+            if (types.indexOf(item.value) != -1 && this.mouseFieldCheckOnOne(size, item)) {
+                return true;
+            }
+        });
+        return false;
+    }
+
     doMouse() {
         if (this.status.isRTF && this.accurateRTF && !this.status.moveShips) {
             var dX = this.mouseX - window.innerWidth / 2;
@@ -2162,7 +2171,7 @@ class Game {
         }
         this.gameX = Math.round(clamp(0, this.gameX, this.gamesize));
         this.gameY = Math.round(clamp(0, this.gameY, this.gamesize));
-        this.status.mouseWithinNarrowField = this.mouseFieldCheck(400);
+        this.status.mouseWithinNarrowField = this.mouseFieldCheck(400) || this.mouseFieldCheckT(1000, ['c']);
         this.status.mouseWithinWideField = this.mouseFieldCheck(600);
         if (this.castle) {
             this.status.canPlaceObject = this.mouseFieldCheckOnOne(800, this.castle);
@@ -2389,7 +2398,7 @@ class Game {
         this.doPlace(this.gameX, this.gameY, type.charCodeAt(0), variant);
     }
 
-    mouseUp() {
+    mouseUp(altk3y) {
         this.mouseIsDown = false;
         if (this.mouseX < 266) { // It's in the sidebar
             this.sidebar.clickies(this);
@@ -2405,10 +2414,12 @@ class Game {
                         if (this.sidebar.inventorySelected.stack) {
                             this.sidebar.inventorySelected.stack--;
                         }
-                        this.sidebar.inventorySelected = undefined;
-                        this.inventory.forEach(item => {
-                            item.selected = false;
-                        });
+                        if (!altk3y) {
+                            this.sidebar.inventorySelected = undefined;
+                            this.inventory.forEach(item => {
+                                item.selected = false;
+                            });
+                        }
                     }
                 }
                 else {
@@ -2565,7 +2576,7 @@ async function play() {
 
             document.getElementById("game").addEventListener("mouseup", (evt) => {
                 if (evt.button == 0) {
-                    game.mouseUp();
+                    game.mouseUp(evt.ctrlKey);
                 }
                 else {
                     game.rightMouseUp();
