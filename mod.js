@@ -1444,12 +1444,12 @@ class Game {
                 }
             },
             {
-                name: "LASER MISSLE",
+                name: "PLASMA CUTTER",
                 cost: 30,
-                descriptionL1: "Missile that shoots a sustained laser beam.",
-                descriptionL2: "Currently in development!",
+                descriptionL1: "Fast-moving accurate fighter that fires a beam of",
+                descriptionL2: "very high energy plasma. Cannot fire while moving.",
                 place: {
-                    word: "H"
+                    word: "p"
                 }
             },
             {
@@ -1927,6 +1927,15 @@ class Game {
                 this.ctx.moveTo(laser[0], laser[1]);
                 this.ctx.lineTo(laser[2], laser[3]);
                 this.ctx.stroke();
+            }
+            else if (laser[5] == "p") {
+                this.ctx.strokeStyle = "purple";
+                this.ctx.lineWidth = 20;
+                this.ctx.beginPath();
+                this.ctx.moveTo(laser[0], laser[1]);
+                this.ctx.lineTo(laser[2], laser[3]);
+                this.ctx.stroke();
+                this.ctx.strokeStyle = "pink";
             }
             else {
                 this.ctx.strokeStyle = "red";
