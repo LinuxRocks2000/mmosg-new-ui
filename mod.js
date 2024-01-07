@@ -2193,7 +2193,7 @@ class Game {
         }
         this.gameX = Math.round(clamp(0, this.gameX, this.gamesize));
         this.gameY = Math.round(clamp(0, this.gameY, this.gamesize));
-        this.status.mouseWithinNarrowField = /*this.mouseFieldCheck(400) ||*/ this.mouseFieldCheckT(1000, ['c']);
+        this.status.mouseWithinNarrowField = this.mouseFieldCheck(400) || this.mouseFieldCheckT(1000, ['c']);
         this.status.mouseWithinWideField = this.mouseFieldCheck(600);
         if (this.castle) {
             this.status.canPlaceObject = this.mouseFieldCheckOnOne(800, this.castle);
