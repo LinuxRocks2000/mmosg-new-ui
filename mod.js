@@ -683,7 +683,6 @@ class GameObject {
             initialY: this.y,
             hasChanged: false
         };
-        this.box = this.bbox();
         this.isOurs = false;
         this.isHovered = false;
         this.bodyHovered = false;
@@ -695,7 +694,8 @@ class GameObject {
         this.carrying = [];
         this.xv = 0;
         this.yv = 0;
-        this.framestart = 0;
+        this.framestart = parent.status.abscounter;
+        this.box = this.bbox(parent.status.abscounter);
     }
 
     highestUpgradeTier(upgrade) {
@@ -1065,9 +1065,12 @@ class GameObject {
         return this.xOld != this.x || this.yOld != this.y || this.aOld != this.a || this.wOld != this.w || this.hOld != this.h;
     }
 
-    tick(game) {
+    tick(game, interpolator) {
         if (this.isChanged()) {
-            this.box = this.bbox();
+            if (interpolator == undefined) {
+                throw "Undefined Interpolator";
+            }
+            this.box = this.bbox(interpolator);
         }
         if (!this.didMove) {
             this.xOld = this.x;
@@ -1083,7 +1086,7 @@ class GameObject {
         }
     }
 
-    bbox() { // Produces a high-quality bbox of rotated rectangular objects
+    bbox(interpolator) { // Produces a high-quality bbox of rotated rectangular objects
         var topleft = new Vector(-this.w / 2, -this.h / 2).rotate(this.a);
         var topright = new Vector(this.w / 2, -this.h / 2).rotate(this.a);
         var bottomleft = new Vector(-this.w / 2, this.h / 2).rotate(this.a);
@@ -1100,7 +1103,15 @@ class GameObject {
         var maxY = topleft.sort((v1, v2) => {
             return v1.y > v2.y;
         }).with(topright).with(bottomleft).with(bottomright).y;
-        return [this.x + minX, this.y + minY, this.x + maxX, this.y + maxY];
+        if (interpolator == undefined) {
+            throw "Undefined Interpolator!";
+        }
+        var rbox = [this.getX(interpolator) + minX, this.getY(interpolator) + minY, this.getX(interpolator) + maxX, this.getY(interpolator) + maxY];
+        if (isNaN(rbox[0])) {
+            console.warn("NaN bbox! X=" + this.getX(interpolator) + ", Y=" + this.getY(interpolator) + ", I=" + interpolator);
+            console.log("Xv: " + this.xv + ", yv: " + this.yv)
+        }
+        return rbox;
     }
 
     interact(game) {
@@ -1709,6 +1720,7 @@ class Game {
             obj.didMove = true;
         });*/
         connection.setOnMessage("TrajectoryUpdate", (id, absframe, x, y, xv, yv) => {
+            if (this.objects[id] == undefined) { return; }
             this.objects[id].x = x;
             this.objects[id].y = y;
             this.objects[id].xv = xv;
@@ -1716,6 +1728,7 @@ class Game {
             this.objects[id].framestart = absframe;
         });
         connection.setOnMessage("UpdateObject", (id, angle, w, h) => {
+            if (this.objects[id] == undefined) { return; }
             var obj = this.objects[id];
             obj.aOld = obj.a;
             obj.wOld = obj.w;
@@ -2153,12 +2166,13 @@ class Game {
     }
 
     mouseFieldCheckT(size, types) {
+        var ret = false;
         Object.values(this.objects).forEach(item => {
-            if (types.indexOf(item.value) != -1 && this.mouseFieldCheckOnOne(size, item)) {
-                return true;
+            if (types.indexOf(item.type) != -1 && this.mouseFieldCheckOnOne(size, item)) {
+                ret = true;
             }
         });
-        return false;
+        return ret;
     }
 
     doMouse() {
@@ -2179,7 +2193,7 @@ class Game {
         }
         this.gameX = Math.round(clamp(0, this.gameX, this.gamesize));
         this.gameY = Math.round(clamp(0, this.gameY, this.gamesize));
-        this.status.mouseWithinNarrowField = this.mouseFieldCheck(400) || this.mouseFieldCheckT(1000, ['c']);
+        this.status.mouseWithinNarrowField = /*this.mouseFieldCheck(400) ||*/ this.mouseFieldCheckT(1000, ['c']);
         this.status.mouseWithinWideField = this.mouseFieldCheck(600);
         if (this.castle) {
             this.status.canPlaceObject = this.mouseFieldCheckOnOne(800, this.castle);
@@ -2360,7 +2374,7 @@ class Game {
     tick() { // Runs every server tick
         this.talk();
         Object.values(this.objects).forEach((item) => {
-            item.tick(this);
+            item.tick(this.status.abscounter);
         });
     }
 
