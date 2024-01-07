@@ -2374,7 +2374,7 @@ class Game {
     tick() { // Runs every server tick
         this.talk();
         Object.values(this.objects).forEach((item) => {
-            item.tick(this.status.abscounter);
+            item.tick(this, this.status.abscounter);
         });
     }
 
