@@ -1798,7 +1798,9 @@ class Game {
             }, 1000);
         });
         connection.setOnMessage("SeedCompletion", (seedId, value) => {
-            this.objects[seedId].seedCompVal = 100 - value;
+            if (this.objects[seedId]) {
+                this.objects[seedId].seedCompVal = 100 - value;
+            }
         });
         connection.setOnMessage("Carry", (carrier, carried) => {
             this.objects[carried].carried = true;
